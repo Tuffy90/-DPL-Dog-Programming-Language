@@ -1,0 +1,12 @@
+# my first dog program
+import io 
+import math
+io.print("io import")
+io.println(100)
+
+io.println("sqrt(9) = " + math.sqrt(9))
+io.println("PI = " + math.PI)
+
+say "woof world"
+say 2 + 3 * 4
+say (10 - 2) / 4

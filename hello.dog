@@ -1,4 +1,0 @@
-# my first dog program
-say "woof world"
-say 2 + 3 * 4
-say (10 - 2) / 4
