@@ -330,5 +330,6 @@ You are free to use, copy, modify, merge, publish, distribute, and sublicense th
 
 ## Author
 **Tuffy Rej**
-Dog Programming Language (DPL) — built in Java and shared publicly on GitHub.
+Dog Programming Language (DPL) — built in Java
+
 
