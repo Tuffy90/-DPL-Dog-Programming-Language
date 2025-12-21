@@ -8,15 +8,12 @@ import java.util.List;
 public class Code {
 
     public static void main(String[] args) {
-        // Если без аргументов — запускаем консоль (REPL)
         if (args.length == 0) {
             new DogConsole().start();
             return;
         }
 
-        // Запуск файла: java Code file.dog
         String filename = args[0];
-
         if (!filename.endsWith(".dog")) {
             System.out.println("Error: file must have .dog extension");
             System.out.println("Usage:");
@@ -26,6 +23,13 @@ public class Code {
         }
 
         runFile(filename);
+    }
+
+    static DogContext newContext() {
+        ModuleRegistry reg = new ModuleRegistry();
+        reg.register(new IoModule());
+        reg.register(new MathModule());
+        return new DogContext(reg);
     }
 
     static void runFile(String filename) {
@@ -38,9 +42,16 @@ public class Code {
 
         try {
             List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
-            DogInterpreter interpreter = new DogInterpreter();
-            interpreter.run(lines);
-        } catch (DogInterpreter.DogException e) {
+
+            DogContext ctx = newContext();
+            DogVM vm = new DogVM();
+
+            BytecodeCompiler compiler = new BytecodeCompiler();
+            Chunk chunk = compiler.compile(lines);
+
+            vm.execute(chunk, ctx);
+
+        } catch (DogException e) {
             printDogError(e);
         } catch (IOException e) {
             System.out.println("Error reading file: " + e.getMessage());
@@ -49,11 +60,10 @@ public class Code {
         }
     }
 
-    static void printDogError(DogInterpreter.DogException e) {
+    static void printDogError(DogException e) {
         System.out.println("Dog error at line " + e.line + ", column " + e.column + ": " + e.getMessage());
         if (e.sourceLine != null) {
             System.out.println(e.sourceLine);
-
             int col = Math.max(1, e.column);
             StringBuilder sb = new StringBuilder();
             for (int i = 1; i < col; i++)

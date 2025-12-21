@@ -9,10 +9,12 @@ import java.util.List;
 
 public class DogConsole {
 
-    private final DogInterpreter interpreter = new DogInterpreter();
     private final List<String> history = new ArrayList<String>();
 
-    // Текущая папка (по умолчанию — откуда запустили java Code)
+    private final DogContext ctx = Code.newContext();
+    private final DogVM vm = new DogVM();
+    private final BytecodeCompiler compiler = new BytecodeCompiler();
+
     private Path cwd = Paths.get(System.getProperty("user.dir")).toAbsolutePath().normalize();
 
     public void start() {
@@ -26,7 +28,7 @@ public class DogConsole {
                 System.out.print("dog[" + cwd.getFileName() + "]> ");
                 String line = br.readLine();
                 if (line == null)
-                    break; // Ctrl+D
+                    break;
 
                 String t = line.trim();
                 if (t.isEmpty())
@@ -38,11 +40,10 @@ public class DogConsole {
                     continue;
                 }
 
-                // обычная строка dog-кода
                 history.add(line);
-                runSingleLine(line);
+                runDogLines(singleLineList(line));
 
-            } catch (DogInterpreter.DogException e) {
+            } catch (DogException e) {
                 Code.printDogError(e);
             } catch (IOException e) {
                 System.out.println("IO error: " + e.getMessage());
@@ -54,15 +55,18 @@ public class DogConsole {
         System.out.println("\nBye!");
     }
 
-    private void runSingleLine(String line) {
-        List<String> one = new ArrayList<String>();
+    private List<String> singleLineList(String line) {
+        ArrayList<String> one = new ArrayList<String>();
         one.add(line);
-        interpreter.run(one);
+        return one;
+    }
+
+    private void runDogLines(List<String> lines) {
+        Chunk chunk = compiler.compile(lines);
+        vm.execute(chunk, ctx);
     }
 
     private boolean handleCommand(String cmdLine, BufferedReader br) throws IOException {
-        // returns true if should exit
-
         if (cmdLine.equals(":help")) {
             printHelp();
             return false;
@@ -88,32 +92,27 @@ public class DogConsole {
         }
 
         if (cmdLine.startsWith(":cd ")) {
-            String arg = cmdLine.substring(4).trim();
-            changeDir(arg);
+            changeDir(cmdLine.substring(4).trim());
             return false;
         }
 
         if (cmdLine.startsWith(":mkdir ")) {
-            String name = cmdLine.substring(7).trim();
-            mkdir(name);
+            mkdir(cmdLine.substring(7).trim());
             return false;
         }
 
         if (cmdLine.startsWith(":touch ")) {
-            String name = cmdLine.substring(7).trim();
-            touch(name);
+            touch(cmdLine.substring(7).trim());
             return false;
         }
 
         if (cmdLine.startsWith(":open ")) {
-            String name = cmdLine.substring(6).trim();
-            openFile(name);
+            openFile(cmdLine.substring(6).trim());
             return false;
         }
 
         if (cmdLine.startsWith(":edit ")) {
-            String name = cmdLine.substring(6).trim();
-            editFile(name, br);
+            editFile(cmdLine.substring(6).trim(), br);
             return false;
         }
 
@@ -124,8 +123,12 @@ public class DogConsole {
         }
 
         if (cmdLine.startsWith(":save ")) {
-            String file = cmdLine.substring(6).trim();
-            saveHistory(file);
+            saveHistory(cmdLine.substring(6).trim());
+            return false;
+        }
+
+        if (cmdLine.equals(":vars")) {
+            System.out.println(vm.globals());
             return false;
         }
 
@@ -144,16 +147,14 @@ public class DogConsole {
         System.out.println("  :touch <file>      - create empty file if not exists");
         System.out.println("  :open <file>       - show file content");
         System.out.println("  :edit <file>       - edit file in console (end with :wq, cancel :q)");
-        System.out.println("  :run <file.dog>    - run a .dog file from current directory");
+        System.out.println("  :run <file.dog>    - run a .dog file from current directory (in current session)");
         System.out.println("  :save <file.dog>   - save your session history into a .dog file");
+        System.out.println("  :vars              - show variables in current session");
         System.out.println("  :clear             - clear session history");
     }
 
-    // ===== Filesystem helpers =====
-
     private Path resolveInCwd(String name) {
-        Path p = cwd.resolve(name).toAbsolutePath().normalize();
-        return p;
+        return cwd.resolve(name).toAbsolutePath().normalize();
     }
 
     private void listDir() throws IOException {
@@ -174,7 +175,7 @@ public class DogConsole {
                 boolean da = Files.isDirectory(a);
                 boolean db = Files.isDirectory(b);
                 if (da != db)
-                    return da ? -1 : 1; // папки выше файлов
+                    return da ? -1 : 1;
                 return a.getFileName().toString().compareToIgnoreCase(b.getFileName().toString());
             }
         });
@@ -194,6 +195,10 @@ public class DogConsole {
     }
 
     private void changeDir(String arg) {
+        if (arg.isEmpty()) {
+            System.out.println("Usage: :cd <folder|..>");
+            return;
+        }
         Path target = resolveInCwd(arg);
         if (!Files.exists(target)) {
             System.out.println("Folder not found: " + arg);
@@ -231,7 +236,6 @@ public class DogConsole {
             System.out.println("Already exists: " + name);
             return;
         }
-        // создаём родительские папки если нужно
         Path parent = file.getParent();
         if (parent != null)
             Files.createDirectories(parent);
@@ -256,9 +260,9 @@ public class DogConsole {
 
         List<String> lines = Files.readAllLines(file, StandardCharsets.UTF_8);
         System.out.println("----- " + file.getFileName() + " -----");
-        if (lines.isEmpty()) {
+        if (lines.isEmpty())
             System.out.println("(empty)");
-        } else {
+        else {
             for (int i = 0; i < lines.size(); i++) {
                 System.out.printf("%4d | %s%n", (i + 1), lines.get(i));
             }
@@ -273,13 +277,11 @@ public class DogConsole {
         }
 
         Path file = resolveInCwd(name);
-
         if (Files.exists(file) && Files.isDirectory(file)) {
             System.out.println("Cannot edit a directory: " + name);
             return;
         }
 
-        // Загружаем текущий контент (если есть)
         List<String> original = new ArrayList<String>();
         if (Files.exists(file)) {
             original = Files.readAllLines(file, StandardCharsets.UTF_8);
@@ -287,8 +289,6 @@ public class DogConsole {
 
         System.out.println("Editing: " + file.getFileName());
         System.out.println("Type lines. Finish with :wq (save & quit), cancel with :q (quit without saving).");
-        System.out.println("Current content will be shown first:");
-
         if (original.isEmpty())
             System.out.println("(empty)");
         else {
@@ -316,18 +316,17 @@ public class DogConsole {
                 Path parent = file.getParent();
                 if (parent != null)
                     Files.createDirectories(parent);
-                Files.write(file, buffer, StandardCharsets.UTF_8, StandardOpenOption.CREATE,
-                        StandardOpenOption.TRUNCATE_EXISTING);
+                Files.write(file, buffer, StandardCharsets.UTF_8,
+                        StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
                 System.out.println("Saved: " + file);
                 return;
             }
 
-            // обычная строка добавляется в конец
             buffer.add(line);
         }
     }
 
-    private void runDogFile(String fileName) {
+    private void runDogFile(String fileName) throws IOException {
         if (fileName.isEmpty()) {
             System.out.println("Usage: :run <file.dog>");
             return;
@@ -336,8 +335,15 @@ public class DogConsole {
             System.out.println("Error: file must end with .dog");
             return;
         }
+
         Path file = resolveInCwd(fileName);
-        Code.runFile(file.toString());
+        if (!Files.exists(file)) {
+            System.out.println("File not found: " + fileName);
+            return;
+        }
+
+        List<String> lines = Files.readAllLines(file, StandardCharsets.UTF_8);
+        runDogLines(lines);
     }
 
     private void saveHistory(String fileName) throws IOException {
@@ -354,8 +360,8 @@ public class DogConsole {
         if (parent != null)
             Files.createDirectories(parent);
 
-        Files.write(file, history, StandardCharsets.UTF_8, StandardOpenOption.CREATE,
-                StandardOpenOption.TRUNCATE_EXISTING);
+        Files.write(file, history, StandardCharsets.UTF_8,
+                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
         System.out.println("Saved history: " + file);
     }
 }
