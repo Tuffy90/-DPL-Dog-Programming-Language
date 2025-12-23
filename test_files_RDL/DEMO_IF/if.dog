@@ -1,0 +1,12 @@
+import io
+
+let a = 10
+let b = 3
+
+if a > b {
+    io.println("THEN")
+} else {
+    io.println("ELSE")
+}
+
+io.println("END")

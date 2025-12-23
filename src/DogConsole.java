@@ -253,10 +253,30 @@ public class DogConsole {
 
         if (cmd.equals(":run")) {
             if (args.size() < 2) {
-                System.out.println("Usage: :run <file.dog>");
+                System.out.println("Usage: :run <file.dog | file.dogc>");
                 return false;
             }
-            runDogFile(args.get(1));
+            runProgramFile(args.get(1));
+            return false;
+        }
+
+        if (cmd.equals(":compile") || cmd.equals(":c")) {
+            if (args.size() < 2) {
+                System.out.println("Usage: :compile <file.dog> [outFile.dogc]");
+                return false;
+            }
+            String in = args.get(1);
+            String out = (args.size() >= 3) ? args.get(2) : null;
+            compileDogToDogc(in, out);
+            return false;
+        }
+
+        if (cmd.equals(":runc")) {
+            if (args.size() < 2) {
+                System.out.println("Usage: :runc <file.dogc>");
+                return false;
+            }
+            runDogcFile(args.get(1));
             return false;
         }
 
@@ -395,7 +415,9 @@ public class DogConsole {
         System.out.println("  :paste <dstFolderOrPath>      - paste from clipboard");
         System.out.println();
         System.out.println("Dog:");
-        System.out.println("  :run <file.dog>              - run a .dog file (same session)");
+        System.out.println("  :run <file.dog|file.dogc>     - run .dog source or .dogc bytecode (same session)");
+        System.out.println("  :compile <file.dog> [out]     - compile .dog -> .dogc (no run)");
+        System.out.println("  :runc <file.dogc>             - run compiled bytecode (same as :run file.dogc)");
         System.out.println("  :save <file.dog>             - save dog session history to file");
         System.out.println("  :vars                        - show variables in current session");
         System.out.println();
@@ -657,12 +679,22 @@ public class DogConsole {
         }
     }
 
-    private void runDogFile(String fileName) throws IOException {
-        if (!fileName.endsWith(".dog")) {
-            System.out.println("Error: file must end with .dog");
+    /**
+     * Run either a .dog source file or a precompiled .dogc bytecode file.
+     */
+    private void runProgramFile(String fileName) throws IOException {
+        if (fileName.endsWith(".dog")) {
+            runDogFile(fileName);
             return;
         }
+        if (fileName.endsWith(".dogc")) {
+            runDogcFile(fileName);
+            return;
+        }
+        System.out.println("Error: file must end with .dog or .dogc");
+    }
 
+    private void runDogFile(String fileName) throws IOException {
         Path file = resolveSmart(fileName);
         if (!Files.exists(file)) {
             System.out.println("File not found: " + fileName);
@@ -672,6 +704,41 @@ public class DogConsole {
         List<String> lines = Files.readAllLines(file, StandardCharsets.UTF_8);
         logTask("RUN " + file.toString());
         runDogLines(lines);
+    }
+
+    private void runDogcFile(String fileName) throws IOException {
+        Path file = resolveSmart(fileName);
+        if (!Files.exists(file)) {
+            System.out.println("File not found: " + fileName);
+            return;
+        }
+        logTask("RUN-C " + file.toString());
+        Chunk chunk = DogBytecodeIO.readChunk(file);
+        vm.execute(chunk, ctx);
+    }
+
+    private void compileDogToDogc(String srcDog, String outDogc) throws IOException {
+        if (!srcDog.endsWith(".dog")) {
+            System.out.println("Error: source must end with .dog");
+            return;
+        }
+
+        Path src = resolveSmart(srcDog);
+        if (!Files.exists(src)) {
+            System.out.println("File not found: " + srcDog);
+            return;
+        }
+
+        Path out = resolveSmart(outDogc);
+        Path parent = out.getParent();
+        if (parent != null)
+            Files.createDirectories(parent);
+
+        List<String> lines = Files.readAllLines(src, StandardCharsets.UTF_8);
+        Chunk chunk = compiler.compile(lines);
+        DogBytecodeIO.writeChunk(chunk, out);
+
+        System.out.println("Compiled: " + src.getFileName() + " -> " + out);
     }
 
     private void saveHistory(String fileName) throws IOException {

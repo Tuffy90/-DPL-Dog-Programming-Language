@@ -1,0 +1,88 @@
+# =========================
+# DPL demo: variables & types
+# Types: NUMBER, STRING, BOOL, NIL
+# Ops: + - * /, string concatenation with +
+# =========================
+
+import io
+import math
+
+# ----- NUMBER -----
+let a = 10
+let b = 3
+
+say "a = " + a
+say "b = " + b
+
+say "a + b = " + (a + b)
+say "a - b = " + (a - b)
+say "a * b = " + (a * b)
+say "a / b = " + (a / b)
+
+# re-assign (without let is also allowed)
+a = a + 5
+say "a after a = a + 5 -> " + a
+
+# math module calls + constants
+let root = math.sqrt(144)
+say "sqrt(144) = " + root
+
+let p = math.pow(2, 8)
+say "pow(2, 8) = " + p
+
+say "math.PI = " + math.PI
+say "math.E  = " + math.E
+
+# ----- STRING -----
+let name = "Tuffy Rej"
+let lang = "DPL"
+
+say "name = " + name
+say "lang = " + lang
+
+# string + string
+let title = name + " builds " + lang
+say title
+
+# string + number (auto printable() conversion)
+let score = 99
+say "score = " + score
+
+# ----- BOOL -----
+let ok = true
+let fail = false
+
+say "ok = " + ok
+say "fail = " + fail
+
+# IMPORTANT: right now you can store and print bool,
+# but you cannot do arithmetic with bool (ok + 1 is not allowed).
+
+# ----- NIL -----
+let empty = nil
+say "empty = " + empty
+
+# nil can be stored and printed too,
+# but arithmetic/operations with nil are not supported yet.
+
+# ----- Variable overwrite between types (allowed) -----
+let x = 5
+say "x = " + x
+
+x = "now I'm a string"
+say "x = " + x
+
+x = true
+say "x = " + x
+
+x = nil
+say "x = " + x
+
+# ----- io module usage (function calls) -----
+io.println("Printed via io.println()")
+io.print("Same line -> ")
+io.println("done!")
+
+# ----- using variables in calls -----
+let n = 9
+io.println("sqrt(" + n + ") = " + math.sqrt(n))

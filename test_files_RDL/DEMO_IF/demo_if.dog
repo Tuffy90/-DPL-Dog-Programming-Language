@@ -1,0 +1,32 @@
+import io
+
+let a = 10
+let b = 3
+
+say "a > b = " + (a > b)
+say "a < b = " + (a < b)
+say "a == b = " + (a == b)
+say "a != b = " + (a != b)
+say "a <> b = " + (a <> b)
+say "a >= 10 = " + (a >= 10)
+say "b <= 3  = " + (b <= 3)
+
+let ok = true
+let no = false
+let empty = nil
+
+say "!ok = " + (!ok)
+say "!no = " + (!no)
+say "!empty = " + (!empty)
+
+if a > b {
+    io.println("a is greater than b")
+} else {
+    io.println("a is NOT greater than b")
+}
+
+if empty {
+    io.println("empty is truthy (should not happen)")
+} else {
+    io.println("nil is falsey -> else branch")
+}
