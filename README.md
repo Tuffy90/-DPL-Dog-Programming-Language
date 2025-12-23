@@ -1,7 +1,7 @@
 # Dog Programming Language (DPL) 🐶
 *A tiny, fun programming language written in Java — built for learning, experiments, and vibes.*
 
-> **Note:** Dog (DPL) is created for entertainment and educational purposes. Anyone can use it, study it, fork it, and build on top of it.
+> **Note:** Dog (DPL) is created for entertainment and educational purposes. You can use it, study it, fork it, and build on top of it — just don’t misrepresent authorship.
 
 ---
 
@@ -10,18 +10,14 @@
 - [Goals](#goals)
 - [Features](#features)
 - [Quick Start](#quick-start)
+- [Build & Run Scripts](#build--run-scripts)
 - [Project Structure](#project-structure)
 - [Language Syntax](#language-syntax)
-- [Comments](#comments)
-- [Say (print)](#say-print)
-- [Imports](#imports)
-- [Standard Library](#standard-library)
-- [Variables](#variables)
-- [Expressions](#expressions)
 - [REPL Console](#repl-console)
+- [CLI Mode (Run / Compile)](#cli-mode-run--compile)
 - [Example Programs](#example-programs)
 - [Errors](#errors)
-- [How it Works (Bytecode + VM)](#how-it-works-bytecode--vm)
+- [How it Works (Bytecode + VM + .dogc)](#how-it-works-bytecode--vm--dogc)
 - [Roadmap](#roadmap)
 - [License](#license)
 - [Author](#author)
@@ -29,51 +25,57 @@
 ---
 
 ## What is DPL?
-**Dog Programming Language (DPL)** is a small custom language that runs on **any platform with Java**.
-It is designed to be:
+**Dog Programming Language (DPL)** is a small custom language that runs anywhere **Java** runs.
+It’s designed to be:
 - easy to read
 - fun to extend
 - great for learning how interpreters/compilers work
-- modular (libraries/modules are separate classes)
+- modular (libraries/modules are separate Java classes)
 
-DPL is evolving from a basic interpreter into a **Bytecode + Virtual Machine** architecture.
+DPL uses a **Compiler → Bytecode → VM** pipeline and also supports saving/loading compiled bytecode as **`.dogc`**.
 
 ---
 
 ## Goals
-- ✅ Run on **Windows / Linux / macOS** (and later Android) via Java
+- ✅ Run on **Windows / Linux / macOS** via Java
 - ✅ Keep syntax simple but expandable
-- ✅ Have a modular standard library (`io`, `math`, etc.)
-- ✅ Provide readable errors (line/column)
-- ✅ Support REPL (interactive console)
-- ✅ Use a proper execution pipeline: **Compiler → Bytecode → VM**
+- ✅ Modular standard library (`io`, `math`, etc.)
+- ✅ Readable errors (line/column + pointer)
+- ✅ REPL console (interactive)
+- ✅ Bytecode + Virtual Machine architecture
+- ✅ **Compile once → run fast** with `.dogc`
 
 ---
 
 ## Features
+
 ### Core Language
-- `say <expr>` output
-- `import <module>` system
-- variables:
-- `let x = ...`
-- `x = ...`
-- use `x` inside expressions
-- expressions:
+- Output: `say <expr>`
+- Imports: `import <module>`
+- Variables:
+- declaration: `let x = ...`
+- assignment: `x = ...`
+- Types:
+- `NUMBER`, `STRING`, `BOOL`, `NIL`
+- literals: `true`, `false`, `nil`
+- Expressions:
 - numbers: `1`, `3.14`
 - strings: `"hello"`
-- math: `+ - * /`
+- arithmetic: `+ - * /`
 - parentheses: `(2 + 3) * 4`
 - string concatenation with `+`
+- Comparisons:
+- `==`, `!=`, `<>`, `<`, `>`, `<=`, `>=`
+- Unary:
+- `!` (NOT)
+- Conditionals:
+- `if <expr> { ... } else { ... }`
 
 ### Standard Library (stdlib)
 - `io.print(value)`
 - `io.println(value)`
 - `math.sqrt(x)`
 - `math.pow(a, b)`
-- `math.abs(x)`
-- `math.floor(x)`
-- `math.ceil(x)`
-- `math.round(x)`
 - constants:
 - `math.PI`
 - `math.E`
@@ -83,52 +85,52 @@ DPL is evolving from a basic interpreter into a **Bytecode + Virtual Machine** a
 - create folder/file
 - open/edit file
 - run `.dog` scripts
+- compile `.dog` → `.dogc`
+- run `.dogc`
 
 ---
 
 ## Quick Start
 
 ### Requirements
-- **Java JDK 8+** (recommended 17+)
+- **Java 8+** (recommended 17+)
+- For building JAR: **JDK required** (needs `javac` + `jar`)
 
-### Compile
-In the project folder:
-```bash
-javac *.java
-```
+---
 
-### Run REPL Console
-```bash
-java Code
-```
+## Build & Run Scripts
 
-### Run a `.dog` file
-```bash
-java Code test.dog
-```
+This repo includes cross-platform scripts (Windows + Unix/macOS).
+
+### Windows (BAT)
+- `build_jar_windows.bat`
+Builds `dist/dpl.jar` and prepares runtime folders.
+- `run_windows.bat`
+Runs the REPL if no args are given, or runs a file if you pass a path.
+- `uninstall_windows.bat`
+Cleans generated folders (like `dist/`, `out/`) — safe cleanup.
+
+### Unix / macOS (SH)
+- `build_jar_unix.sh`
+Builds `dist/dpl.jar`.
+- `run_unix.sh`
+Runs DPL (REPL or file), same idea as Windows script.
+
+> Tip: on Unix/macOS run `chmod +x scripts/*.sh` once.
 
 ---
 
 ## Project Structure
-Typical structure (you can keep all `.java` files in one folder for now):
 
+Recommended structure:
 ```
-/Dog-code
-Code.java
-DogConsole.java
-DogVM.java
-BytecodeCompiler.java
-Chunk.java
-Instruction.java
-OpCode.java
-
-Value.java
-DogException.java
-DogModule.java
-ModuleRegistry.java
-DogContext.java
-IoModule.java
-MathModule.java
+DPL/
+src/ # Java sources
+dist/ # built jar output (dpl.jar)
+out/ # compiled bytecode output (.dogc) (optional)
+test_files_RDL/ # demo scripts
+scripts/ # .bat / .sh scripts
+assets/ # icons etc. (optional)
 ```
 
 ---
@@ -142,8 +144,6 @@ Single-line comments start with `#`:
 say "Hello"
 ```
 
----
-
 ### Say (print)
 `say` prints the result of an expression:
 ```dog
@@ -151,35 +151,12 @@ say "Hello world"
 say 2 + 3 * 4
 ```
 
----
-
 ### Imports
 Modules must be imported before use:
 ```dog
 import io
 import math
 ```
-
----
-
-### Standard Library
-
-#### io
-```dog
-import io
-io.print("HP: ")
-io.println(100)
-```
-
-#### math
-```dog
-import math
-say math.sqrt(9)
-say math.pow(2, 8)
-say math.PI
-```
-
----
 
 ### Variables
 Declare:
@@ -197,29 +174,55 @@ Use:
 say x
 ```
 
----
-
-### Expressions
-Supported:
-- numbers: `10`, `2.5`
-- strings: `"text"`
-- arithmetic: `+ - * /`
-- parentheses: `( )`
-- string concat:
+### Booleans & Nil
 ```dog
-say "Hello " + "Dog"
-say "x = " + 10
+let ok = true
+let no = false
+let empty = nil
+
+say ok
+say !ok
+say empty
+```
+
+### Comparisons
+```dog
+let a = 10
+let b = 3
+
+say a > b
+say a < b
+say a == b
+say a != b
+say a <> b
+say a >= 10
+say b <= 3
+```
+
+### If / Else
+```dog
+import io
+
+let a = 10
+let b = 3
+
+if a > b {
+io.println("a is greater than b")
+} else {
+io.println("a is NOT greater than b")
+}
 ```
 
 ---
 
 ## REPL Console
-Start:
+
+Start REPL:
 ```bash
-java Code
+java -jar dist/dpl.jar
 ```
 
-### Console Commands
+Common console commands (may vary depending on your console implementation):
 - `:help` — show commands
 - `:exit` — exit
 - `:pwd` — current directory
@@ -229,10 +232,36 @@ java Code
 - `:touch <file>` — create empty file
 - `:open <file>` — show file content
 - `:edit <file>` — edit file (`:wq` save & quit, `:q` quit without save)
-- `:run <file.dog>` — run a script in current session (keeps variables/imports)
-- `:save <file.dog>` — save session history to file
-- `:vars` — show variables stored in current session
-- `:clear` — clear session history
+- `:run <file.dog>` — compile + run source
+- `:compile <file.dog> <out.dogc>` — compile to bytecode
+- `:vars` — show variables in current session
+
+---
+
+## CLI Mode (Run / Compile)
+
+If your `Code.java` supports arguments:
+
+### Start console (REPL)
+```bash
+java -jar dist/dpl.jar
+```
+
+### Run `.dog` source
+```bash
+java -jar dist/dpl.jar program.dog
+```
+
+### Run compiled `.dogc`
+```bash
+java -jar dist/dpl.jar program.dogc
+```
+
+### Compile only (`.dog` → `.dogc`)
+```bash
+java -jar dist/dpl.jar -c program.dog
+java -jar dist/dpl.jar -c program.dog out/program.dogc
+```
 
 ---
 
@@ -243,21 +272,28 @@ java Code
 say "Hello from Dog!"
 ```
 
-### 2) Variables
+### 2) Variables + Math
 ```dog
-let x = 10
-x = x + 5
-say "x = " + x
+import math
+let x = 9
+say "sqrt(9) = " + math.sqrt(x)
+say "PI = " + math.PI
 ```
 
-### 3) IO + Math
+### 3) If / Else demo
 ```dog
 import io
-import math
 
-let a = 9
-io.println("sqrt(9) = " + math.sqrt(a))
-io.println("PI = " + math.PI)
+let a = 10
+let b = 3
+
+if a > b {
+io.println("THEN")
+} else {
+io.println("ELSE")
+}
+
+io.println("END")
 ```
 
 ---
@@ -270,66 +306,53 @@ say x
 ^
 ```
 
-This helps you locate mistakes quickly.
-
 ---
 
-## How it Works (Bytecode + VM)
+## How it Works (Bytecode + VM + .dogc)
 
-DPL uses a simple execution pipeline:
+### 1) Compiler (`BytecodeCompiler`)
+- reads `.dog` source lines
+- parses statements + expressions
+- emits instructions into a `Chunk`
 
-1) **Compiler**
-- reads `.dog` source code
-- parses it (expressions, statements, calls)
-- outputs bytecode instructions into a `Chunk`
+### 2) Bytecode (`Chunk`, `Instruction`, `OpCode`)
+Instruction examples:
+- push constants: numbers/strings/bools/nil
+- arithmetic: add/sub/mul/div
+- comparisons + logic: `== != < > <= >= !`
+- variables: load/store
+- modules: import/call
+- flow: jump / jump-if-false
 
-2) **Bytecode**
-A list of compact instructions, like:
-- push number / push string
-- add/mul/div
-- load/store variables
-- import module
-- call module functions/constants
-- print / pop
-
-3) **Virtual Machine (VM)**
+### 3) Virtual Machine (`DogVM`)
 - executes instructions
-- keeps a stack for calculations
-- stores variables in a global map
-- resolves module calls through `DogContext` and `ModuleRegistry`
+- uses a stack for expression evaluation
+- stores globals in a map
+- calls modules via `DogContext` and `ModuleRegistry`
 
-This design is scalable and lets the language grow without turning the interpreter into a “giant if-else monster”.
+### 4) `.dogc` (compiled bytecode file)
+- compile once and save
+- run later without parsing source text again
 
 ---
 
 ## Roadmap
 Planned upgrades:
-- [ ] `io.input()` (user input)
-- [ ] `if / else`
 - [ ] `while` loops
 - [ ] functions: `fn name(args) { ... }`
-- [ ] local scopes (not only global variables)
-- [ ] save/load compiled bytecode: `.dogc`
-- [ ] more stdlib modules:
-- `string`
-- `time`
-- `file`
-- `random`
-- [ ] multimedia modules (future):
-- `audio`
-- `graphics`
-- `input`
+- [ ] local scopes (not only globals)
+- [ ] arrays / maps (future)
+- [ ] more stdlib modules: `string`, `time`, `file`, `random`
+- [ ] Windows file icon association for `.dog` (optional installer step)
 
 ---
 
 ## License
-This project uses the **MIT License**.
-You are free to use, copy, modify, merge, publish, distribute, and sublicense the code.
+MIT License (Modified - Attribution & No Misrepresentation)
 
 ---
 
 ## Author
 **Tuffy Rej**
 Dog Programming Language (DPL) — built in Java
-
 
