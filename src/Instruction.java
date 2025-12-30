@@ -1,25 +1,17 @@
-// File: Instruction.java
 public final class Instruction {
     public final OpCode op;
-
-    // payload
     public final Integer intVal;
     public final Long longVal;
     public final Double doubleVal;
     public final String text;
     public final Boolean boolVal;
-
     public final String name;
     public final String module;
     public final String member;
-
     public final int argCount;
     public final boolean isConst;
-
-    public final int funcIndex; // CONST_FUNC
-
+    public final int funcIndex;
     public int jumpTarget;
-
     public final int line;
     public final int col;
     public final String sourceLine;
@@ -41,31 +33,24 @@ public final class Instruction {
             int line,
             int col,
             String sourceLine) {
-
         this.op = op;
         this.intVal = intVal;
         this.longVal = longVal;
         this.doubleVal = doubleVal;
         this.text = text;
         this.boolVal = boolVal;
-
         this.name = name;
         this.module = module;
         this.member = member;
-
         this.argCount = argCount;
         this.isConst = isConst;
-
         this.funcIndex = funcIndex;
-
         this.jumpTarget = jumpTarget;
-
         this.line = line;
         this.col = col;
         this.sourceLine = sourceLine;
     }
 
-    // ---- CONST ----
     public static Instruction constInt(int n, int line, int col, String src) {
         return new Instruction(OpCode.CONST_INT, n, null, null, null, null, null, null, null, 0, false, -1, -1, line,
                 col, src);
@@ -101,7 +86,6 @@ public final class Instruction {
                 col, src);
     }
 
-    // ---- functions ----
     public static Instruction constFunc(int funcIndex, int line, int col, String src) {
         return new Instruction(OpCode.CONST_FUNC, null, null, null, null, null, null, null, null, 0, false, funcIndex,
                 -1, line, col, src);
@@ -117,7 +101,6 @@ public final class Instruction {
                 col, src);
     }
 
-    // ---- arrays ----
     public static Instruction arrayNew(int count, int line, int col, String src) {
         return new Instruction(OpCode.ARRAY_NEW, null, null, null, null, null, null, null, null, count, false, -1, -1,
                 line, col, src);
@@ -133,7 +116,6 @@ public final class Instruction {
                 col, src);
     }
 
-    // ---- basic ----
     public static Instruction simple(OpCode op, int line, int col, String src) {
         return new Instruction(op, null, null, null, null, null, null, null, null, 0, false, -1, -1, line, col, src);
     }

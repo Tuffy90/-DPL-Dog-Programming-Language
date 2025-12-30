@@ -13,55 +13,40 @@ public final class BytecodeCompiler {
             String t0 = raw0.trim();
             if (t0.isEmpty() || t0.startsWith("#"))
                 continue;
-
-            // IF / ELSE
             if (t0.startsWith("if ")) {
                 i = compileIf(lines, i, chunk);
                 continue;
             }
-
-            // WHILE
             if (t0.startsWith("while ")) {
                 i = compileWhile(lines, i, chunk);
                 continue;
             }
-
-            // FUNCTION
             if (t0.startsWith("fn ")) {
                 i = compileFn(lines, i, chunk);
                 continue;
             }
-
             LogicalLine L = readLogicalLine(lines, i);
             i = L.endIndex;
-
             compileSingleLine(L.raw, line0, chunk);
         }
-
         return chunk;
     }
 
-    // ============================================================
-    // IF / ELSE
-    // ============================================================
     private int compileIf(List<String> lines, int i, Chunk chunk) {
         String rawIf = lines.get(i);
         int lineIf = i + 1;
-
         int ifIndex = rawIf.indexOf("if");
         int baseCol = (ifIndex >= 0 ? ifIndex + 1 : 1);
-
         int brace = rawIf.indexOf('{');
+
         if (brace < 0) {
             throw DogException.at(lineIf, baseCol, rawIf,
                     "Expected '{' after if condition (use: if cond { ... })");
         }
-
         if (stripInlineComment(rawIf.substring(brace + 1)).trim().length() > 0) {
             throw DogException.at(lineIf, baseCol, rawIf,
                     "Put '{' at end of line. Body must be on next lines.");
         }
-
         String condExpr = rawIf.substring(ifIndex + 2, brace).trim();
         if (condExpr.isEmpty()) {
             throw DogException.at(lineIf, baseCol, rawIf, "Expected condition after 'if'");
@@ -73,9 +58,7 @@ public final class BytecodeCompiler {
 
         int jFalseIndex = chunk.code().size();
         chunk.add(Instruction.jumpIfFalse(-1, lineIf, baseCol, rawIf));
-
         int thenCloseLineIndex = compileThenBlock(lines, i, chunk);
-
         int elseLineIndex = -1;
 
         String closeTrim = lines.get(thenCloseLineIndex).trim();
@@ -87,7 +70,6 @@ public final class BytecodeCompiler {
                 elseLineIndex = thenCloseLineIndex + 1;
             }
         }
-
         if (elseLineIndex != -1) {
             int jEndIndex = chunk.code().size();
             chunk.add(Instruction.jump(-1, lineIf, baseCol, rawIf));
@@ -100,7 +82,6 @@ public final class BytecodeCompiler {
 
             return elseCloseLineIndex;
         }
-
         chunk.code().get(jFalseIndex).jumpTarget = chunk.code().size();
         return thenCloseLineIndex;
     }
@@ -116,25 +97,21 @@ public final class BytecodeCompiler {
                 depth += braceDelta(raw);
                 continue;
             }
-
             if (tr.startsWith("} else")) {
                 depth -= 1;
                 if (depth == 0)
                     return k;
                 continue;
             }
-
             depth += braceDelta(raw);
             if (depth == 0)
                 return k;
-
             if (tr.isEmpty() || tr.startsWith("#"))
                 continue;
             if (tr.equals("{") || tr.equals("}"))
                 continue;
             if (tr.startsWith("}"))
                 continue;
-
             if (tr.startsWith("if ")) {
                 int end = compileIf(lines, k, chunk);
                 depth += braceDeltaRange(lines, k, end);
@@ -153,12 +130,10 @@ public final class BytecodeCompiler {
                 k = end;
                 continue;
             }
-
             LogicalLine L = readLogicalLine(lines, k);
             compileSingleLine(L.raw, k + 1, chunk);
             k = L.endIndex;
         }
-
         throw DogException.at(ifLineIndex + 1, 1, lines.get(ifLineIndex), "Unclosed block: missing '}'");
     }
 
@@ -169,17 +144,14 @@ public final class BytecodeCompiler {
         if (elsePos < 0) {
             throw DogException.at(elseLineIndex + 1, 1, rawElse, "Expected 'else'");
         }
-
         int brace = rawElse.indexOf('{', elsePos);
         if (brace < 0) {
             throw DogException.at(elseLineIndex + 1, 1, rawElse, "Expected '{' after else");
         }
-
         if (stripInlineComment(rawElse.substring(brace + 1)).trim().length() > 0) {
             throw DogException.at(elseLineIndex + 1, 1, rawElse,
                     "Put '{' at end of line. Else body must be on next lines.");
         }
-
         int depth = 1;
 
         for (int k = elseLineIndex + 1; k < lines.size(); k++) {
@@ -189,14 +161,12 @@ public final class BytecodeCompiler {
             depth += braceDelta(raw);
             if (depth == 0)
                 return k;
-
             if (t.isEmpty() || t.startsWith("#"))
                 continue;
             if (t.equals("{") || t.equals("}"))
                 continue;
             if (t.startsWith("}"))
                 continue;
-
             if (t.startsWith("if ")) {
                 int end = compileIf(lines, k, chunk);
                 depth += braceDeltaRange(lines, k, end);
@@ -215,55 +185,40 @@ public final class BytecodeCompiler {
                 k = end;
                 continue;
             }
-
             LogicalLine L = readLogicalLine(lines, k);
             compileSingleLine(L.raw, k + 1, chunk);
             k = L.endIndex;
         }
-
         throw DogException.at(elseLineIndex + 1, 1, rawElse, "Unclosed else block: missing '}'");
     }
 
-    // ============================================================
-    // WHILE
-    // ============================================================
     private int compileWhile(List<String> lines, int i, Chunk chunk) {
         String rawWhile = lines.get(i);
         int lineWhile = i + 1;
-
         int whIndex = rawWhile.indexOf("while");
         int baseCol = (whIndex >= 0 ? whIndex + 1 : 1);
-
         int brace = rawWhile.indexOf('{');
         if (brace < 0) {
             throw DogException.at(lineWhile, baseCol, rawWhile,
                     "Expected '{' after while condition (use: while cond { ... })");
         }
-
         if (stripInlineComment(rawWhile.substring(brace + 1)).trim().length() > 0) {
             throw DogException.at(lineWhile, baseCol, rawWhile,
                     "Put '{' at end of line. Body must be on next lines.");
         }
-
         String condExpr = rawWhile.substring(whIndex + "while".length(), brace).trim();
         if (condExpr.isEmpty()) {
             throw DogException.at(lineWhile, baseCol, rawWhile, "Expected condition after 'while'");
         }
-
         int loopStartIp = chunk.code().size();
-
         Parser p = new Parser(condExpr, lineWhile, baseCol, rawWhile, chunk);
         p.parseExpression();
         p.finish();
-
         int jFalseIndex = chunk.code().size();
         chunk.add(Instruction.jumpIfFalse(-1, lineWhile, baseCol, rawWhile));
-
         int closeLine = compileWhileBlock(lines, i, chunk);
-
         chunk.add(Instruction.jump(loopStartIp, lineWhile, baseCol, rawWhile));
         chunk.code().get(jFalseIndex).jumpTarget = chunk.code().size();
-
         return closeLine;
     }
 
@@ -273,23 +228,18 @@ public final class BytecodeCompiler {
         for (int k = whileLineIndex; k < lines.size(); k++) {
             String raw = lines.get(k);
             String tr = raw.trim();
-
             depth += braceDelta(raw);
-
             if (k == whileLineIndex) {
                 continue;
             }
-
             if (depth == 0)
                 return k;
-
             if (tr.isEmpty() || tr.startsWith("#"))
                 continue;
             if (tr.equals("{") || tr.equals("}"))
                 continue;
             if (tr.startsWith("}"))
                 continue;
-
             if (tr.startsWith("if ")) {
                 int end = compileIf(lines, k, chunk);
                 depth += braceDeltaRange(lines, k, end);
@@ -308,138 +258,108 @@ public final class BytecodeCompiler {
                 k = end;
                 continue;
             }
-
             LogicalLine L = readLogicalLine(lines, k);
             compileSingleLine(L.raw, k + 1, chunk);
             k = L.endIndex;
         }
-
         throw DogException.at(whileLineIndex + 1, 1, lines.get(whileLineIndex), "Unclosed while block: missing '}'");
     }
 
-    // ============================================================
-    // FUNCTION: fn name(a,b) { ... }
-    // ============================================================
-   private int compileFn(List<String> lines, int i, Chunk chunk) {
-    String rawFn = lines.get(i);
-    int lineFn = i + 1;
-
-    int fnPos = rawFn.indexOf("fn");
-    int baseCol = (fnPos >= 0 ? fnPos + 1 : 1);
-
-    int brace = rawFn.indexOf('{');
-    if (brace < 0) {
-        throw DogException.at(lineFn, baseCol, rawFn, "Expected '{' after fn header");
-    }
-    if (stripInlineComment(rawFn.substring(brace + 1)).trim().length() > 0) {
-        throw DogException.at(lineFn, baseCol, rawFn, "Put '{' at end of line. Body must be on next lines.");
-    }
-
-    String header = rawFn.substring(fnPos + 2, brace).trim(); // after "fn"
-    int lp = header.indexOf('(');
-    int rp = header.lastIndexOf(')');
-    if (lp < 0 || rp < 0 || rp < lp) {
-        throw DogException.at(lineFn, baseCol, rawFn, "Bad fn header. Use: fn name(a,b) {");
-    }
-
-    String name = header.substring(0, lp).trim();
-    String paramsText = header.substring(lp + 1, rp).trim();
-
-    if (!isIdent(name)) {
-        throw DogException.at(lineFn, baseCol, rawFn, "Bad function name: " + name);
-    }
-
-    ArrayList<String> params = new ArrayList<>();
-    if (!paramsText.isEmpty()) {
-        String[] parts = paramsText.split(",");
-        for (String p : parts) {
-            String id = p.trim();
-            if (!isIdent(id)) {
-                throw DogException.at(lineFn, baseCol, rawFn, "Bad parameter name: " + id);
+    private int compileFn(List<String> lines, int i, Chunk chunk) {
+        String rawFn = lines.get(i);
+        int lineFn = i + 1;
+        int fnPos = rawFn.indexOf("fn");
+        int baseCol = (fnPos >= 0 ? fnPos + 1 : 1);
+        int brace = rawFn.indexOf('{');
+        if (brace < 0) {
+            throw DogException.at(lineFn, baseCol, rawFn, "Expected '{' after fn header");
+        }
+        if (stripInlineComment(rawFn.substring(brace + 1)).trim().length() > 0) {
+            throw DogException.at(lineFn, baseCol, rawFn, "Put '{' at end of line. Body must be on next lines.");
+        }
+        String header = rawFn.substring(fnPos + 2, brace).trim(); // after "fn"
+        int lp = header.indexOf('(');
+        int rp = header.lastIndexOf(')');
+        if (lp < 0 || rp < 0 || rp < lp) {
+            throw DogException.at(lineFn, baseCol, rawFn, "Bad fn header. Use: fn name(a,b) {");
+        }
+        String name = header.substring(0, lp).trim();
+        String paramsText = header.substring(lp + 1, rp).trim();
+        if (!isIdent(name)) {
+            throw DogException.at(lineFn, baseCol, rawFn, "Bad function name: " + name);
+        }
+        ArrayList<String> params = new ArrayList<>();
+        if (!paramsText.isEmpty()) {
+            String[] parts = paramsText.split(",");
+            for (String p : parts) {
+                String id = p.trim();
+                if (!isIdent(id)) {
+                    throw DogException.at(lineFn, baseCol, rawFn, "Bad parameter name: " + id);
+                }
+                params.add(id);
             }
-            params.add(id);
         }
+        Chunk body = new Chunk();
+        int depth = 0;
+        int closeLineIndex = -1;
+        for (int k = i; k < lines.size(); k++) {
+            String raw = lines.get(k);
+            String tr = raw.trim();
+            depth += braceDelta(raw);
+            if (k == i) {
+                continue;
+            }
+            if (depth == 0) {
+                closeLineIndex = k;
+                break;
+            }
+            if (tr.isEmpty() || tr.startsWith("#"))
+                continue;
+            if (tr.equals("{") || tr.equals("}"))
+                continue;
+            if (tr.startsWith("}"))
+                continue;
+            if (tr.startsWith("if ")) {
+                int end = compileIf(lines, k, body);
+                depth += braceDeltaRange(lines, k, end);
+                k = end;
+                continue;
+            }
+            if (tr.startsWith("while ")) {
+                int end = compileWhile(lines, k, body);
+                depth += braceDeltaRange(lines, k, end);
+                k = end;
+                continue;
+            }
+            if (tr.startsWith("fn ")) {
+                int end = compileFn(lines, k, body);
+                depth += braceDeltaRange(lines, k, end);
+                k = end;
+                continue;
+            }
+            LogicalLine L = readLogicalLine(lines, k);
+            compileSingleLine(L.raw, k + 1, body);
+            k = L.endIndex;
+        }
+
+        if (closeLineIndex == -1) {
+            throw DogException.at(lineFn, baseCol, rawFn, "Unclosed fn block: missing '}'");
+        }
+        if (body.code().isEmpty() || body.code().get(body.code().size() - 1).op != OpCode.RETURN) {
+            body.add(Instruction.constNil(lineFn, baseCol, rawFn));
+            body.add(Instruction.ret(lineFn, baseCol, rawFn));
+        }
+        int fnIndex = chunk.addFunction(new FunctionProto(params, body));
+        chunk.add(Instruction.constFunc(fnIndex, lineFn, baseCol, rawFn));
+        chunk.add(Instruction.store(name, lineFn, baseCol, rawFn));
+        return closeLineIndex;
     }
 
-    Chunk body = new Chunk();
-
-    int depth = 0;
-    int closeLineIndex = -1;
-
-    for (int k = i; k < lines.size(); k++) {
-        String raw = lines.get(k);
-        String tr = raw.trim();
-
-        // учитываем скобки на текущей строке
-        depth += braceDelta(raw);
-
-        // первая строка "fn ... {" уже учтена, просто идём дальше
-        if (k == i) {
-            continue;
-        }
-
-        // если дошли до закрытия функции
-        if (depth == 0) {
-            closeLineIndex = k;
-            break;
-        }
-
-        if (tr.isEmpty() || tr.startsWith("#")) continue;
-        if (tr.equals("{") || tr.equals("}")) continue;
-        if (tr.startsWith("}")) continue;
-
-        // ВАЖНО: если мы прыгаем внутрь вложенного блока, надо докрутить depth
-        if (tr.startsWith("if ")) {
-            int end = compileIf(lines, k, body);
-            depth += braceDeltaRange(lines, k, end); // компенсируем пропущенные строки
-            k = end;
-            continue;
-        }
-        if (tr.startsWith("while ")) {
-            int end = compileWhile(lines, k, body);
-            depth += braceDeltaRange(lines, k, end);
-            k = end;
-            continue;
-        }
-        if (tr.startsWith("fn ")) {
-            int end = compileFn(lines, k, body);
-            depth += braceDeltaRange(lines, k, end);
-            k = end;
-            continue;
-        }
-
-        LogicalLine L = readLogicalLine(lines, k);
-        compileSingleLine(L.raw, k + 1, body);
-        k = L.endIndex;
-    }
-
-    if (closeLineIndex == -1) {
-        throw DogException.at(lineFn, baseCol, rawFn, "Unclosed fn block: missing '}'");
-    }
-
-    if (body.code().isEmpty() || body.code().get(body.code().size() - 1).op != OpCode.RETURN) {
-        body.add(Instruction.constNil(lineFn, baseCol, rawFn));
-        body.add(Instruction.ret(lineFn, baseCol, rawFn));
-    }
-
-    int fnIndex = chunk.addFunction(new FunctionProto(params, body));
-
-    chunk.add(Instruction.constFunc(fnIndex, lineFn, baseCol, rawFn));
-    chunk.add(Instruction.store(name, lineFn, baseCol, rawFn));
-
-    return closeLineIndex;
-    }
-
-    // ============================================================
-    // One logical statement
-    // ============================================================
     private void compileSingleLine(String rawOriginal, int line, Chunk chunk) {
         String raw = stripInlineComment(rawOriginal);
         String trimmed = raw.trim();
         if (trimmed.isEmpty())
             return;
-
-        // import <module>
         if (trimmed.startsWith("import ")) {
             int col = indexOfNonSpace(raw) + 1;
             String mod = trimmed.substring("import ".length()).trim();
@@ -450,7 +370,6 @@ public final class BytecodeCompiler {
             return;
         }
 
-        // return <expr?>
         if (trimmed.startsWith("return")) {
             int col = indexOfNonSpace(raw) + 1;
             String rest = trimmed.substring("return".length()).trim();
@@ -469,7 +388,6 @@ public final class BytecodeCompiler {
             return;
         }
 
-        // say <expr>
         if (trimmed.startsWith("say")) {
             int sayPos = raw.indexOf("say");
             int after = sayPos + 3;
@@ -490,7 +408,6 @@ public final class BytecodeCompiler {
             return;
         }
 
-        // let x = expr
         if (trimmed.startsWith("let ")) {
             int letPos = raw.indexOf("let");
             int baseCol = letPos + 1;
@@ -514,17 +431,13 @@ public final class BytecodeCompiler {
             Parser p = new Parser(expr, line, baseCol, rawOriginal, chunk);
             p.parseExpression();
             p.finish();
-
             chunk.add(Instruction.store(var, line, baseCol, rawOriginal));
             return;
         }
 
-        // array set: a[expr] = expr
         if (tryCompileArraySet(raw, line, rawOriginal, chunk)) {
             return;
         }
-
-        // x = expr
         int assignPos = findTopLevelAssign(trimmed);
         if (assignPos >= 0) {
             String left = trimmed.substring(0, assignPos).trim();
@@ -537,16 +450,12 @@ public final class BytecodeCompiler {
             if (right.isEmpty()) {
                 throw DogException.at(line, col, rawOriginal, "Expected expression after '='");
             }
-
             Parser p = new Parser(right, line, col, rawOriginal, chunk);
             p.parseExpression();
             p.finish();
-
             chunk.add(Instruction.store(left, line, col, rawOriginal));
             return;
         }
-
-        // expression statement (must be call)
         compileExprStatement(raw, line, rawOriginal, chunk);
     }
 
@@ -555,40 +464,30 @@ public final class BytecodeCompiler {
         int eq = findTopLevelAssign(trimmed);
         if (eq < 0)
             return false;
-
         String left = trimmed.substring(0, eq).trim();
         String right = trimmed.substring(eq + 1).trim();
-
         int lb = left.indexOf('[');
         int rb = left.lastIndexOf(']');
         if (lb < 0 || rb < 0 || rb < lb)
             return false;
-
         String name = left.substring(0, lb).trim();
         String idxExpr = left.substring(lb + 1, rb).trim();
-
         if (!isIdent(name))
             return false;
-
         if (idxExpr.isEmpty()) {
             throw DogException.at(line, 1, src, "Expected index expression inside []");
         }
         if (right.isEmpty()) {
             throw DogException.at(line, 1, src, "Expected expression after '='");
         }
-
         int col = indexOfNonSpace(raw) + 1;
-
         chunk.add(Instruction.load(name, line, col, src));
-
         Parser pIdx = new Parser(idxExpr, line, col, src, chunk);
         pIdx.parseExpression();
         pIdx.finish();
-
         Parser pVal = new Parser(right, line, col, src, chunk);
         pVal.parseExpression();
         pVal.finish();
-
         chunk.add(Instruction.arraySet(line, col, src));
         chunk.add(Instruction.simple(OpCode.POP, line, col, src));
         return true;
@@ -598,11 +497,9 @@ public final class BytecodeCompiler {
         int exprStart = indexOfNonSpace(raw);
         int exprCol = exprStart + 1;
         String expr = raw.substring(exprStart);
-
         Parser p = new Parser(expr, line, exprCol, src, chunk);
         p.parseExpression();
         p.finish();
-
         if (!p.didCall) {
             throw DogException.at(line, exprCol, src,
                     "This line does nothing. Use 'say <expr>' or call something like io.print(...)");
@@ -610,9 +507,6 @@ public final class BytecodeCompiler {
         chunk.add(Instruction.simple(OpCode.POP, line, exprCol, src));
     }
 
-    // ============================================================
-    // Multiline logical line reader
-    // ============================================================
     private static final class LogicalLine {
         final String raw;
         final int endIndex;
@@ -626,14 +520,12 @@ public final class BytecodeCompiler {
     private static LogicalLine readLogicalLine(List<String> lines, int startIndex) {
         String raw0 = lines.get(startIndex);
         String t0 = raw0.trim();
-
         if (isStructuralLine(t0)) {
             return new LogicalLine(raw0, startIndex);
         }
 
         StringBuilder sb = new StringBuilder();
         sb.append(raw0);
-
         int i = startIndex;
         while (true) {
             if (isStatementComplete(sb.toString())) {
@@ -674,7 +566,6 @@ public final class BytecodeCompiler {
 
         for (int i = 0; i < raw.length(); i++) {
             char c = raw.charAt(i);
-
             if (inStr) {
                 if (esc) {
                     esc = false;
@@ -685,7 +576,6 @@ public final class BytecodeCompiler {
                 }
                 continue;
             }
-
             if (c == '#')
                 break;
 
@@ -693,36 +583,30 @@ public final class BytecodeCompiler {
                 inStr = true;
                 continue;
             }
-
             if (c == '(')
                 par++;
             else if (c == ')')
                 par = Math.max(0, par - 1);
-
             else if (c == '[')
                 br++;
             else if (c == ']')
                 br = Math.max(0, br - 1);
-
             else if (c == '{')
                 cr++;
             else if (c == '}')
                 cr = Math.max(0, cr - 1);
         }
-
         return !inStr && par == 0 && br == 0 && cr == 0;
     }
 
     private static String stripInlineComment(String raw) {
         if (raw == null)
             return null;
-
         boolean inStr = false;
         boolean esc = false;
 
         for (int i = 0; i < raw.length(); i++) {
             char c = raw.charAt(i);
-
             if (inStr) {
                 if (esc)
                     esc = false;
@@ -732,12 +616,10 @@ public final class BytecodeCompiler {
                     inStr = false;
                 continue;
             }
-
             if (c == '"') {
                 inStr = true;
                 continue;
             }
-
             if (c == '#') {
                 return raw.substring(0, i);
             }
@@ -748,14 +630,12 @@ public final class BytecodeCompiler {
     private static int braceDelta(String raw) {
         if (raw == null)
             return 0;
-
         boolean inStr = false;
         boolean esc = false;
         int d = 0;
 
         for (int i = 0; i < raw.length(); i++) {
             char c = raw.charAt(i);
-
             if (inStr) {
                 if (esc)
                     esc = false;
@@ -765,14 +645,12 @@ public final class BytecodeCompiler {
                     inStr = false;
                 continue;
             }
-
             if (c == '#')
                 break;
             if (c == '"') {
                 inStr = true;
                 continue;
             }
-
             if (c == '{')
                 d++;
             else if (c == '}')
@@ -791,9 +669,6 @@ public final class BytecodeCompiler {
         return d;
     }
 
-    // ============================================================
-    // Helpers
-    // ============================================================
     private static boolean isIdent(String s) {
         if (s == null || s.isEmpty())
             return false;
@@ -826,7 +701,6 @@ public final class BytecodeCompiler {
     private static int findTopLevelAssign(String s) {
         if (s == null || s.isEmpty())
             return -1;
-
         int paren = 0;
         int bracket = 0;
         int brace = 0;
@@ -834,7 +708,6 @@ public final class BytecodeCompiler {
 
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
-
             if (c == '"') {
                 boolean escaped = (i > 0 && s.charAt(i - 1) == '\\');
                 if (!escaped)
@@ -843,10 +716,8 @@ public final class BytecodeCompiler {
             }
             if (inQuotes)
                 continue;
-
             if (c == '#')
                 break;
-
             if (c == '(')
                 paren++;
             else if (c == ')' && paren > 0)
@@ -859,14 +730,11 @@ public final class BytecodeCompiler {
                 brace++;
             else if (c == '}' && brace > 0)
                 brace--;
-
             if (paren != 0 || bracket != 0 || brace != 0)
                 continue;
-
             if (c == '=') {
                 if (i + 1 < s.length() && s.charAt(i + 1) == '=')
                     continue;
-
                 if (i - 1 >= 0) {
                     char prev = s.charAt(i - 1);
                     if (prev == '!' || prev == '<' || prev == '>')
@@ -878,16 +746,12 @@ public final class BytecodeCompiler {
         return -1;
     }
 
-    // ============================================================
-    // Expression Parser -> emits bytecode into Chunk
-    // ============================================================
     private static final class Parser {
         private final String s;
         private final int line;
         private final int baseCol;
         private final String fullLine;
         private final Chunk out;
-
         int pos = 0;
         boolean didCall = false;
 
@@ -925,7 +789,6 @@ public final class BytecodeCompiler {
                 skipSpaces();
                 if (peek() == '<' && peekNext() == '>')
                     break;
-
                 if (match2(">=")) {
                     parseAdd();
                     emit(OpCode.GE);
@@ -984,7 +847,6 @@ public final class BytecodeCompiler {
                 emit(OpCode.NOT);
                 return;
             }
-
             if (match('-')) {
                 int start = pos;
                 emitConstInt(0, start);
@@ -992,25 +854,19 @@ public final class BytecodeCompiler {
                 emit(OpCode.SUB);
                 return;
             }
-
             parsePrimary();
             parsePostfix();
         }
 
-        // postfix: calls and indexing AFTER any primary (including lambda/grouping)
         void parsePostfix() {
             while (true) {
                 skipSpaces();
-
-                // call: expr(...)
                 if (match('(')) {
                     didCall = true;
                     int argc = parseArgsAfterOpenParen();
                     out.add(Instruction.callValue(argc, line, baseCol + pos, fullLine));
                     continue;
                 }
-
-                // indexing: expr[...]
                 if (match('[')) {
                     skipSpaces();
                     parseExpression();
@@ -1020,7 +876,6 @@ public final class BytecodeCompiler {
                     out.add(Instruction.arrayGet(line, baseCol + pos, fullLine));
                     continue;
                 }
-
                 break;
             }
         }
@@ -1029,7 +884,6 @@ public final class BytecodeCompiler {
             skipSpaces();
             if (match(')'))
                 return 0;
-
             int count = 0;
             while (true) {
                 parseExpression();
@@ -1046,8 +900,6 @@ public final class BytecodeCompiler {
 
         void parsePrimary() {
             skipSpaces();
-
-            // array literal
             if (match('[')) {
                 skipSpaces();
                 int count = 0;
@@ -1068,50 +920,36 @@ public final class BytecodeCompiler {
                 out.add(Instruction.arrayNew(count, line, baseCol + pos, fullLine));
                 return;
             }
-
-            // string
             if (peek() == '"') {
                 int start = pos;
                 String str = parseString();
                 out.add(Instruction.constStr(str, line, baseCol + start, fullLine));
                 return;
             }
-
-            // lambda OR grouping: (a,b)=>expr OR (expr)
             if (peek() == '(') {
                 int saved = pos;
-
                 LambdaHeader lh = tryParseLambdaHeader(saved);
                 if (lh != null) {
                     skipSpaces();
                     if (matchArrow()) {
                         skipSpaces();
                         int bodyStart = pos;
-
-                        // IMPORTANT: slice stops BEFORE ',' ')' ']' '}' on top level
                         String bodyExpr = readLambdaBodySlice();
                         if (bodyExpr.trim().isEmpty())
                             throw err("Expected expression after lambda arrow");
-
                         Chunk body = new Chunk();
                         Parser p2 = new Parser(bodyExpr, line, baseCol + bodyStart, fullLine, body);
                         p2.parseExpression();
                         p2.finish();
                         body.add(Instruction.ret(line, baseCol + bodyStart, fullLine));
-
                         int fnIndex = out.addFunction(new FunctionProto(lh.params, body));
                         out.add(Instruction.constFunc(fnIndex, line, baseCol + saved, fullLine));
-
-                        // move pos to end of lambda body (delimiter not consumed)
                         pos = bodyStart + bodyExpr.length();
                         return;
                     } else {
-                        // not a lambda, rollback and parse as grouping
                         pos = saved;
                     }
                 }
-
-                // grouping
                 match('(');
                 parseExpression();
                 skipSpaces();
@@ -1120,24 +958,19 @@ public final class BytecodeCompiler {
                 return;
             }
 
-            // number
             if (Character.isDigit(peek()) || peek() == '.') {
                 int start = pos;
                 emitNumberLiteral(parseNumberToken(), start);
                 return;
             }
-
-            // ident / module.member / keywords
             if (isIdentStart(peek())) {
                 parseIdentOrQualifiedOrKeyword();
                 return;
             }
-
             throw err("Unexpected token near: " + rest());
         }
 
         boolean matchArrow() {
-            // support both => and ->
             if (match2("=>"))
                 return true;
             if (match2("->"))
@@ -1145,38 +978,27 @@ public final class BytecodeCompiler {
             return false;
         }
 
-        // Try parse lambda header: (a,b) OR ()
-        // If parsed, leaves pos after ')'. If not - returns null and does not change
-        // pos.
         LambdaHeader tryParseLambdaHeader(int savedPos) {
             int p = savedPos;
             if (p >= s.length() || s.charAt(p) != '(')
                 return null;
-            p++; // after '('
-
+            p++;
             ArrayList<String> params = new ArrayList<>();
-
             while (p < s.length() && Character.isWhitespace(s.charAt(p)))
                 p++;
-
-            // empty: ()
             if (p < s.length() && s.charAt(p) == ')') {
                 p++;
                 pos = p;
                 return new LambdaHeader(params);
             }
-
-            // ident (, ident)*
             while (true) {
                 while (p < s.length() && Character.isWhitespace(s.charAt(p)))
                     p++;
                 if (p >= s.length())
                     return null;
-
                 char c = s.charAt(p);
                 if (!(Character.isLetter(c) || c == '_'))
                     return null;
-
                 int start = p;
                 p++;
                 while (p < s.length()) {
@@ -1206,18 +1028,13 @@ public final class BytecodeCompiler {
             }
         }
 
-        // read until end-of-lambda-expression slice (same expression),
-        // IMPORTANT: stops BEFORE delimiters at TOP LEVEL so that apply(..., (x)=>x*x)
-        // works
         String readLambdaBodySlice() {
             int i = pos;
             int par = 0, br = 0, cr = 0;
             boolean inStr = false;
             boolean esc = false;
-
             while (i < s.length()) {
                 char c = s.charAt(i);
-
                 if (inStr) {
                     if (esc)
                         esc = false;
@@ -1228,23 +1045,18 @@ public final class BytecodeCompiler {
                     i++;
                     continue;
                 }
-
                 if (c == '"') {
                     inStr = true;
                     i++;
                     continue;
                 }
-
                 if (c == '#')
                     break;
-
-                // stop at delimiters on TOP LEVEL
                 if (par == 0 && br == 0 && cr == 0) {
                     if (c == ',' || c == ')' || c == ']' || c == '}') {
                         break;
                     }
                 }
-
                 if (c == '(')
                     par++;
                 else if (c == ')' && par > 0)
@@ -1257,17 +1069,14 @@ public final class BytecodeCompiler {
                     cr++;
                 else if (c == '}' && cr > 0)
                     cr--;
-
                 i++;
             }
-
             return s.substring(pos, i);
         }
 
         void parseIdentOrQualifiedOrKeyword() {
             int start = pos;
             String a = parseIdent();
-
             if (a.equals("true")) {
                 out.add(Instruction.constBool(true, line, baseCol + start, fullLine));
                 return;
@@ -1280,7 +1089,6 @@ public final class BytecodeCompiler {
                 out.add(Instruction.constNil(line, baseCol + start, fullLine));
                 return;
             }
-
             skipSpaces();
             if (match('.')) {
                 skipSpaces();
@@ -1288,23 +1096,17 @@ public final class BytecodeCompiler {
                     throw err("Expected identifier after '.'");
                 String b = parseIdent();
                 skipSpaces();
-
                 if (match('(')) {
                     didCall = true;
                     int argCount = parseArgsAfterOpenParen();
                     out.add(Instruction.call(a, b, argCount, false, line, baseCol + start, fullLine));
                     return;
                 }
-
-                // property get: module.member
                 out.add(Instruction.call(a, b, 0, true, line, baseCol + start, fullLine));
                 return;
             }
-
             out.add(Instruction.load(a, line, baseCol + start, fullLine));
         }
-
-        // ---- numbers / strings ----
 
         void emitConstInt(int v, int startPos) {
             out.add(Instruction.constInt(v, line, baseCol + startPos, fullLine));
@@ -1345,18 +1147,15 @@ public final class BytecodeCompiler {
 
             while (!isEnd()) {
                 char c = s.charAt(pos);
-
                 if (Character.isDigit(c)) {
                     pos++;
                     continue;
                 }
-
                 if (c == '.' && !dot && !exp) {
                     dot = true;
                     pos++;
                     continue;
                 }
-
                 if ((c == 'e' || c == 'E') && !exp) {
                     exp = true;
                     pos++;
@@ -1375,7 +1174,6 @@ public final class BytecodeCompiler {
         void emitNumberLiteral(String token, int startPos) {
             if (token == null || token.isEmpty())
                 throw err("Bad number");
-
             if (token.indexOf('.') >= 0 || token.indexOf('e') >= 0 || token.indexOf('E') >= 0) {
                 try {
                     double d = Double.parseDouble(token);
@@ -1388,7 +1186,6 @@ public final class BytecodeCompiler {
 
             try {
                 java.math.BigInteger bi = new java.math.BigInteger(token);
-
                 if (bi.bitLength() <= 31) {
                     out.add(Instruction.constInt(bi.intValue(), line, baseCol + startPos, fullLine));
                     return;
@@ -1397,14 +1194,11 @@ public final class BytecodeCompiler {
                     out.add(Instruction.constLong(bi.longValue(), line, baseCol + startPos, fullLine));
                     return;
                 }
-
                 out.add(Instruction.constBigInt(bi.toString(), line, baseCol + startPos, fullLine));
             } catch (NumberFormatException e) {
                 throw err("Bad number: " + token);
             }
         }
-
-        // ---- finish / utils ----
 
         void finish() {
             skipSpaces();

@@ -1,5 +1,3 @@
-
-// File: Chunk.java
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,7 +22,6 @@ public final class Chunk {
         return code;
     }
 
-    // ---- functions table ----
     public int addFunction(FunctionProto proto) {
         functions.add(proto);
         return functions.size() - 1;

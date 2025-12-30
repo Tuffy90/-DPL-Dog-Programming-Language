@@ -1,5 +1,3 @@
-
-// File: DogVM.java
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -13,7 +11,7 @@ public final class DogVM {
 
     private static final class Frame {
         final Map<String, Value> locals = new HashMap<>();
-        final Map<String, Value> closure; // captured values snapshot (mutable inside this frame)
+        final Map<String, Value> closure;
         final int stackBase;
 
         Frame(Map<String, Value> closure, int stackBase) {
@@ -34,45 +32,33 @@ public final class DogVM {
 
     private Value executeChunk(Chunk chunk, DogContext ctx, boolean isFunction, Frame frame) {
         List<Instruction> code = chunk.code();
-
         for (int ip = 0; ip < code.size(); ip++) {
             Instruction ins = code.get(ip);
-
             try {
                 switch (ins.op) {
-
-                    // ---- const ----
                     case CONST_INT:
                         stack.add(Value.ofInt(ins.intVal != null ? ins.intVal.intValue() : 0));
                         break;
-
                     case CONST_LONG:
                         stack.add(Value.ofLong(ins.longVal != null ? ins.longVal.longValue() : 0L));
                         break;
-
                     case CONST_DOUBLE:
                         stack.add(Value.ofDouble(ins.doubleVal != null ? ins.doubleVal.doubleValue() : 0.0));
                         break;
-
                     case CONST_BIGINT: {
                         String t = ins.text != null ? ins.text : "0";
                         stack.add(Value.ofBigInt(new BigInteger(t)));
                         break;
                     }
-
                     case CONST_STR:
                         stack.add(Value.str(ins.text != null ? ins.text : ""));
                         break;
-
                     case CONST_BOOL:
                         stack.add(Value.bool(ins.boolVal != null && ins.boolVal.booleanValue()));
                         break;
-
                     case CONST_NIL:
                         stack.add(Value.nil());
                         break;
-
-                    // ---- functions ----
                     case CONST_FUNC: {
                         if (ins.funcIndex < 0 || ins.funcIndex >= chunk.functions().size()) {
                             throw DogException.at(ins.line, ins.col, ins.sourceLine,
@@ -83,27 +69,22 @@ public final class DogVM {
                         stack.add(Value.function(proto, cap));
                         break;
                     }
-
                     case CALL_VALUE: {
                         int n = ins.argCount;
                         if (n < 0)
                             throw DogException.at(ins.line, ins.col, ins.sourceLine, "Bad CALL_VALUE argCount");
-
                         ArrayList<Value> args = new ArrayList<>(n);
                         for (int i = 0; i < n; i++)
-                            args.add(0, pop(ins)); // keep order
+                            args.add(0, pop(ins));
                         Value callee = pop(ins);
-
                         if (callee == null || !callee.isFunction()) {
                             throw DogException.at(ins.line, ins.col, ins.sourceLine,
                                     "Trying to call non-function: " + (callee == null ? "null" : callee.kind));
                         }
-
                         Value r = callUserFunction(callee.funcProto, callee.closure, args, ctx, ins);
                         stack.add(r);
                         break;
                     }
-
                     case RETURN: {
                         if (!isFunction) {
                             throw DogException.at(ins.line, ins.col, ins.sourceLine, "RETURN outside of function");
@@ -113,20 +94,16 @@ public final class DogVM {
                             stack.remove(stack.size() - 1);
                         return r;
                     }
-
-                    // ---- arrays ----
                     case ARRAY_NEW: {
                         int n = ins.argCount;
                         if (n < 0)
                             throw DogException.at(ins.line, ins.col, ins.sourceLine, "Bad ARRAY_NEW count");
-
                         ArrayList<Value> items = new ArrayList<Value>(n);
                         for (int i = 0; i < n; i++)
                             items.add(0, pop(ins));
                         stack.add(Value.array(items));
                         break;
                     }
-
                     case ARRAY_GET: {
                         Value idxV = pop(ins);
                         Value arrV = pop(ins);
@@ -141,7 +118,6 @@ public final class DogVM {
                         stack.add(arrV.arrayVal.get(idx));
                         break;
                     }
-
                     case ARRAY_SET: {
                         Value value = pop(ins);
                         Value idxV = pop(ins);
@@ -160,23 +136,18 @@ public final class DogVM {
                         stack.add(value);
                         break;
                     }
-
-                    // ---- arithmetic ----
                     case ADD: {
                         Value b = pop(ins);
                         Value a = pop(ins);
-
                         if (a.isString() || b.isString()) {
                             stack.add(Value.str(a.printable() + b.printable()));
                             break;
                         }
-
                         requireNumber(a, ins);
                         requireNumber(b, ins);
                         stack.add(numAdd(a, b));
                         break;
                     }
-
                     case SUB: {
                         Value b = pop(ins);
                         Value a = pop(ins);
@@ -185,7 +156,6 @@ public final class DogVM {
                         stack.add(numSub(a, b));
                         break;
                     }
-
                     case MUL: {
                         Value b = pop(ins);
                         Value a = pop(ins);
@@ -194,7 +164,6 @@ public final class DogVM {
                         stack.add(numMul(a, b));
                         break;
                     }
-
                     case DIV: {
                         Value b = pop(ins);
                         Value a = pop(ins);
@@ -203,28 +172,23 @@ public final class DogVM {
                         stack.add(Value.ofDouble(a.toDouble() / b.toDouble()));
                         break;
                     }
-
-                    // ---- logic ----
                     case NOT: {
                         Value a = pop(ins);
                         stack.add(Value.bool(!isTruthy(a)));
                         break;
                     }
-
                     case EQ: {
                         Value b = pop(ins);
                         Value a = pop(ins);
                         stack.add(Value.bool(isEqual(a, b)));
                         break;
                     }
-
                     case NEQ: {
                         Value b = pop(ins);
                         Value a = pop(ins);
                         stack.add(Value.bool(!isEqual(a, b)));
                         break;
                     }
-
                     case LT: {
                         Value b = pop(ins);
                         Value a = pop(ins);
@@ -233,7 +197,6 @@ public final class DogVM {
                         stack.add(Value.bool(numCompare(a, b) < 0));
                         break;
                     }
-
                     case GT: {
                         Value b = pop(ins);
                         Value a = pop(ins);
@@ -242,7 +205,6 @@ public final class DogVM {
                         stack.add(Value.bool(numCompare(a, b) > 0));
                         break;
                     }
-
                     case LE: {
                         Value b = pop(ins);
                         Value a = pop(ins);
@@ -251,7 +213,6 @@ public final class DogVM {
                         stack.add(Value.bool(numCompare(a, b) <= 0));
                         break;
                     }
-
                     case GE: {
                         Value b = pop(ins);
                         Value a = pop(ins);
@@ -260,8 +221,6 @@ public final class DogVM {
                         stack.add(Value.bool(numCompare(a, b) >= 0));
                         break;
                     }
-
-                    // ---- vars ----
                     case LOAD: {
                         Value v = loadVar(ins.name);
                         if (v == null) {
@@ -271,28 +230,22 @@ public final class DogVM {
                         stack.add(v);
                         break;
                     }
-
                     case STORE: {
                         Value v = pop(ins);
                         storeVar(ins.name, v);
                         break;
                     }
-
-                    // ---- modules ----
                     case IMPORT: {
                         ctx.importModule(ins.module, ins.line, ins.col, ins.sourceLine);
                         break;
                     }
-
                     case CALL: {
                         ctx.requireImported(ins.module, ins.line, ins.col, ins.sourceLine);
-
                         DogModule m = ctx.registry().get(ins.module);
                         if (m == null) {
                             throw DogException.at(ins.line, ins.col, ins.sourceLine,
                                     "Unknown module: " + ins.module);
                         }
-
                         if (ins.isConst) {
                             Value v = m.getConstant(ins.member, ctx, ins.line, ins.col, ins.sourceLine);
                             stack.add(v);
@@ -309,13 +262,10 @@ public final class DogVM {
                         }
                         break;
                     }
-
-                    // ---- jumps ----
                     case JUMP:
                         checkJump(ins.jumpTarget, code.size(), ins);
                         ip = ins.jumpTarget - 1;
                         break;
-
                     case JUMP_IF_FALSE: {
                         Value cond = pop(ins);
                         if (!isTruthy(cond)) {
@@ -324,23 +274,18 @@ public final class DogVM {
                         }
                         break;
                     }
-
-                    // ---- io ----
                     case PRINT: {
                         Value v = pop(ins);
                         System.out.println(v.printable());
                         break;
                     }
-
                     case POP:
                         pop(ins);
                         break;
-
                     default:
                         throw DogException.at(ins.line, ins.col, ins.sourceLine,
                                 "Unknown opcode: " + ins.op);
                 }
-
             } catch (DogException e) {
                 throw e;
             } catch (RuntimeException e) {
@@ -348,8 +293,6 @@ public final class DogVM {
                         "Runtime error: " + e.getMessage());
             }
         }
-
-        // function without explicit RETURN
         return isFunction ? Value.nil() : Value.nil();
     }
 
@@ -358,17 +301,14 @@ public final class DogVM {
             List<Value> args,
             DogContext ctx,
             Instruction callIns) {
-
         int base = stack.size();
         Frame frame = new Frame(new HashMap<>(closure), base);
         frames.add(frame);
-
         for (int i = 0; i < proto.params.size(); i++) {
             String p = proto.params.get(i);
             Value v = (i < args.size()) ? args.get(i) : Value.nil();
             frame.locals.put(p, v);
         }
-
         try {
             return executeChunk(proto.body, ctx, true, frame);
         } finally {
@@ -381,7 +321,6 @@ public final class DogVM {
     private Map<String, Value> captureEnvSnapshot() {
         HashMap<String, Value> env = new HashMap<>();
         env.putAll(globals);
-
         for (int i = 0; i < frames.size(); i++) {
             Frame f = frames.get(i);
             env.putAll(f.closure);
@@ -406,7 +345,6 @@ public final class DogVM {
             globals.put(name, v);
             return;
         }
-
         for (int i = frames.size() - 1; i >= 0; i--) {
             Frame f = frames.get(i);
             if (f.locals.containsKey(name)) {
@@ -418,7 +356,6 @@ public final class DogVM {
                 return;
             }
         }
-
         frames.get(frames.size() - 1).locals.put(name, v);
     }
 
@@ -470,7 +407,6 @@ public final class DogVM {
             return true;
         if (v.isFunction())
             return true;
-
         if (v.isNumber()) {
             if (v.kind == Value.Kind.DOUBLE)
                 return v.doubleVal != 0.0;
@@ -489,20 +425,16 @@ public final class DogVM {
             return true;
         if (a == null || b == null)
             return false;
-
         if (a.isNil() && b.isNil())
             return true;
-
         if (a.isNumber() && b.isNumber()) {
             if (a.kind == Value.Kind.DOUBLE || b.kind == Value.Kind.DOUBLE) {
                 return Double.compare(a.toDouble(), b.toDouble()) == 0;
             }
             return a.toBigInteger().equals(b.toBigInteger());
         }
-
         if (a.kind != b.kind)
             return false;
-
         if (a.isString())
             return a.stringVal.equals(b.stringVal);
         if (a.isBool())

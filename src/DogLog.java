@@ -14,36 +14,26 @@ public final class DogLog {
 
     private static final DateTimeFormatter TS = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private static volatile boolean inited = false;
-
-    // По умолчанию — только ошибки (то, что ты хочешь)
     private static volatile Level minLevel = Level.ERROR;
-
     private static Path logDir = Paths.get("log");
     private static Path logFile = logDir.resolve("dpl.log");
 
     private DogLog() {
     }
 
-    /**
-     * Можно поменять порог через JVM параметр:
-     * java -Ddpl.log.level=INFO -jar dpl.jar
-     */
     public static void init() {
         if (inited)
             return;
         inited = true;
-
         try {
             Files.createDirectories(logDir);
         } catch (IOException ignored) {
         }
-
         String lvl = System.getProperty("dpl.log.level");
         if (lvl != null) {
             try {
                 minLevel = Level.valueOf(lvl.trim().toUpperCase());
             } catch (Exception ignored) {
-                // если пользователь ввёл фигню — оставляем ERROR
             }
         }
     }
@@ -58,9 +48,6 @@ public final class DogLog {
         return minLevel;
     }
 
-    // -----------------------
-    // Public helpers
-    // -----------------------
     public static void error(String tag, String msg) {
         log(Level.ERROR, tag, msg, null);
     }
@@ -73,7 +60,6 @@ public final class DogLog {
         log(Level.WARN, tag, msg, null);
     }
 
-    // Эти уровни будут молчать, пока minLevel выше (по умолчанию ERROR)
     public static void info(String tag, String msg) {
         log(Level.INFO, tag, msg, null);
     }
@@ -82,15 +68,11 @@ public final class DogLog {
         log(Level.DEBUG, tag, msg, null);
     }
 
-    // -----------------------
-    // Core
-    // -----------------------
     private static void log(Level level, String tag, String msg, Throwable t) {
         if (!inited)
             init();
         if (!enabled(level))
             return;
-
         String ts = LocalDateTime.now().format(TS);
         String line = "[" + ts + "] [" + level + "]" +
                 (tag == null ? "" : " [" + tag + "] ") +
@@ -98,22 +80,18 @@ public final class DogLog {
 
         StringBuilder sb = new StringBuilder();
         sb.append(line).append(System.lineSeparator());
-
         if (t != null) {
             sb.append(stackTrace(t)).append(System.lineSeparator());
         }
-
         try {
             Files.createDirectories(logDir);
             Files.write(logFile, sb.toString().getBytes(StandardCharsets.UTF_8),
                     StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.APPEND);
         } catch (IOException ignored) {
-            // если лог не удалось записать — не падаем
         }
     }
 
     private static boolean enabled(Level level) {
-        // Порядок: ERROR(0) WARN(1) INFO(2) DEBUG(3)
         return order(level) <= order(minLevel);
     }
 
@@ -124,7 +102,7 @@ public final class DogLog {
             return 1;
         if (lvl == Level.INFO)
             return 2;
-        return 3; // DEBUG
+        return 3;
     }
 
     private static String stackTrace(Throwable t) {

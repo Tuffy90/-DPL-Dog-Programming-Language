@@ -2,11 +2,6 @@
 setlocal EnableExtensions
 chcp 65001 >nul
 
-rem =========================
-rem DPL - Uninstall (Windows)
-rem Removes .dog association created by install script (per-user)
-rem =========================
-
 set "EXT=.dog"
 set "PROGID=DPL.DogFile"
 

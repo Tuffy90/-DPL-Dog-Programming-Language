@@ -1,6 +1,6 @@
 public class DogException extends RuntimeException {
-    public final int line; // 1-based
-    public final int column; // 1-based
+    public final int line;
+    public final int column;
     public final String sourceLine;
 
     public DogException(int line, int column, String sourceLine, String message) {

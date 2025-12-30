@@ -16,15 +16,11 @@ public final class JsonModule implements DogModule {
     private final Map<String, Fn> fns = new HashMap<String, Fn>();
 
     public JsonModule() {
-
-        // json.minify(text)
         fns.put("minify", (args, ctx, line, col, fullLine) -> {
             requireCount(args, 1, "minify", line, col, fullLine);
             String s = requireString(args.get(0), line, col, fullLine);
             return Value.str(minifyJsonLike(s));
         });
-
-        // json.pretty(text, indentSpaces)
         fns.put("pretty", (args, ctx, line, col, fullLine) -> {
             requireCount(args, 2, "pretty", line, col, fullLine);
             String s = requireString(args.get(0), line, col, fullLine);
@@ -33,10 +29,6 @@ public final class JsonModule implements DogModule {
                 indent = 0;
             return Value.str(prettyJsonLike(s, indent));
         });
-
-        // -------- Files --------
-
-        // json.read(path) -> string
         fns.put("read", (args, ctx, line, col, fullLine) -> {
             requireCount(args, 1, "read", line, col, fullLine);
             String path = requireString(args.get(0), line, col, fullLine);
@@ -55,8 +47,6 @@ public final class JsonModule implements DogModule {
                 throw DogException.at(line, col, fullLine, "json.read error: " + e.getMessage());
             }
         });
-
-        // json.write(path, text) -> nil
         fns.put("write", (args, ctx, line, col, fullLine) -> {
             requireCount(args, 2, "write", line, col, fullLine);
             String path = requireString(args.get(0), line, col, fullLine);
@@ -76,8 +66,6 @@ public final class JsonModule implements DogModule {
                 throw DogException.at(line, col, fullLine, "json.write error: " + e.getMessage());
             }
         });
-
-        // json.exists(path) -> bool
         fns.put("exists", (args, ctx, line, col, fullLine) -> {
             requireCount(args, 1, "exists", line, col, fullLine);
             String path = requireString(args.get(0), line, col, fullLine);
@@ -87,8 +75,6 @@ public final class JsonModule implements DogModule {
                 throw DogException.at(line, col, fullLine, "json.exists error: " + e.getMessage());
             }
         });
-
-        // json.size(path) -> long
         fns.put("size", (args, ctx, line, col, fullLine) -> {
             requireCount(args, 1, "size", line, col, fullLine);
             String path = requireString(args.get(0), line, col, fullLine);
@@ -103,8 +89,6 @@ public final class JsonModule implements DogModule {
                 throw DogException.at(line, col, fullLine, "json.size error: " + e.getMessage());
             }
         });
-
-        // json.readPretty(path, indent) -> string
         fns.put("readPretty", (args, ctx, line, col, fullLine) -> {
             requireCount(args, 2, "readPretty", line, col, fullLine);
             String path = requireString(args.get(0), line, col, fullLine);
@@ -126,8 +110,6 @@ public final class JsonModule implements DogModule {
                 throw DogException.at(line, col, fullLine, "json.readPretty error: " + e.getMessage());
             }
         });
-
-        // json.writePretty(path, text, indent) -> nil
         fns.put("writePretty", (args, ctx, line, col, fullLine) -> {
             requireCount(args, 3, "writePretty", line, col, fullLine);
             String path = requireString(args.get(0), line, col, fullLine);
@@ -151,19 +133,12 @@ public final class JsonModule implements DogModule {
                 throw DogException.at(line, col, fullLine, "json.writePretty error: " + e.getMessage());
             }
         });
-
-        // -------- Build JSON text --------
-
-        // json.escape(str) -> string
         fns.put("escape", (args, ctx, line, col, fullLine) -> {
             requireCount(args, 1, "escape", line, col, fullLine);
             String s = requireString(args.get(0), line, col, fullLine);
             return Value.str(escapeJsonString(s));
         });
-
-        // json.arr(a,b,c,...) -> string "[...]"
         fns.put("arr", (args, ctx, line, col, fullLine) -> {
-            // any count allowed
             StringBuilder sb = new StringBuilder();
             sb.append('[');
             for (int i = 0; i < args.size(); i++) {
@@ -174,8 +149,6 @@ public final class JsonModule implements DogModule {
             sb.append(']');
             return Value.str(sb.toString());
         });
-
-        // json.obj(k1,v1,k2,v2,...) -> string "{...}"
         fns.put("obj", (args, ctx, line, col, fullLine) -> {
             if (args.size() % 2 != 0) {
                 throw DogException.at(line, col, fullLine,
@@ -183,29 +156,23 @@ public final class JsonModule implements DogModule {
             }
             StringBuilder sb = new StringBuilder();
             sb.append('{');
-
             int pairIndex = 0;
             for (int i = 0; i < args.size(); i += 2) {
                 Value k = args.get(i);
                 Value v = args.get(i + 1);
-
                 if (k == null || !k.isString()) {
                     throw DogException.at(line, col, fullLine,
                             "json.obj: key #" + (pairIndex + 1) + " must be a string");
                 }
-
                 if (pairIndex > 0)
                     sb.append(',');
-
                 sb.append('"');
                 sb.append(escapeJsonString(k.stringVal));
                 sb.append('"');
                 sb.append(':');
                 sb.append(toJsonValue(v, line, col, fullLine));
-
                 pairIndex++;
             }
-
             sb.append('}');
             return Value.str(sb.toString());
         });
@@ -231,7 +198,6 @@ public final class JsonModule implements DogModule {
         throw DogException.at(line, col, fullLine, "json has no constants. Use functions like json.obj/json.arr");
     }
 
-    // --- helpers: args ---
     private static void requireCount(List<Value> args, int n, String fn, int line, int col, String fullLine) {
         if (args.size() != n) {
             throw DogException.at(line, col, fullLine, "json." + fn + "(...) expects " + n + " argument(s)");
@@ -260,17 +226,12 @@ public final class JsonModule implements DogModule {
         return (int) L;
     }
 
-    // --- helpers: json formatting ---
-    // Not a full JSON parser. Whitespace-safe minify/pretty for typical JSON-like
-    // text.
     private static String minifyJsonLike(String s) {
         StringBuilder out = new StringBuilder(s.length());
         boolean inStr = false;
         boolean esc = false;
-
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
-
             if (inStr) {
                 out.append(c);
                 if (esc) {
@@ -282,31 +243,25 @@ public final class JsonModule implements DogModule {
                 }
                 continue;
             }
-
             if (c == '"') {
                 inStr = true;
                 out.append(c);
                 continue;
             }
-
             if (!Character.isWhitespace(c))
                 out.append(c);
         }
-
         return out.toString();
     }
 
     private static String prettyJsonLike(String s, int indent) {
         String min = minifyJsonLike(s);
         StringBuilder out = new StringBuilder(min.length() + 64);
-
         boolean inStr = false;
         boolean esc = false;
         int level = 0;
-
         for (int i = 0; i < min.length(); i++) {
             char c = min.charAt(i);
-
             if (inStr) {
                 out.append(c);
                 if (esc) {
@@ -318,13 +273,11 @@ public final class JsonModule implements DogModule {
                 }
                 continue;
             }
-
             if (c == '"') {
                 inStr = true;
                 out.append(c);
                 continue;
             }
-
             if (c == '{' || c == '[') {
                 out.append(c);
                 out.append('\n');
@@ -332,7 +285,6 @@ public final class JsonModule implements DogModule {
                 appendIndent(out, level, indent);
                 continue;
             }
-
             if (c == '}' || c == ']') {
                 out.append('\n');
                 level = Math.max(0, level - 1);
@@ -340,22 +292,18 @@ public final class JsonModule implements DogModule {
                 out.append(c);
                 continue;
             }
-
             if (c == ',') {
                 out.append(c);
                 out.append('\n');
                 appendIndent(out, level, indent);
                 continue;
             }
-
             if (c == ':') {
                 out.append(": ");
                 continue;
             }
-
             out.append(c);
         }
-
         return out.toString();
     }
 
@@ -364,7 +312,6 @@ public final class JsonModule implements DogModule {
             sb.append(' ');
     }
 
-    // --- helpers: escape/build json values ---
     private static String escapeJsonString(String s) {
         if (s == null)
             return "";
@@ -408,22 +355,16 @@ public final class JsonModule implements DogModule {
         return out.toString();
     }
 
-    // Converts DPL Value to JSON literal string (no surrounding spaces).
-    // Supports: string, number, bool, nil, array(Value arrayVal).
     private static String toJsonValue(Value v, int line, int col, String fullLine) {
         if (v == null || v.isNil())
             return "null";
-
         if (v.isBool())
             return v.boolVal ? "true" : "false";
-
         if (v.isString()) {
             return "\"" + escapeJsonString(v.stringVal) + "\"";
         }
 
         if (v.isNumber()) {
-            // keep it JSON-friendly: numbers as printable
-            // your Value.printable() likely returns clean number text
             String num = v.printable();
             if (num == null || num.isEmpty())
                 num = "0";
@@ -441,8 +382,6 @@ public final class JsonModule implements DogModule {
             sb.append(']');
             return sb.toString();
         }
-
-        // fallback: stringify as JSON string
         return "\"" + escapeJsonString(v.printable()) + "\"";
     }
 }

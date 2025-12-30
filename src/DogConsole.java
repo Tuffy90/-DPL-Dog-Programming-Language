@@ -16,79 +16,56 @@ public class DogConsole {
     private static final String DOG_NAME = "Dog Programming Language (DPL)";
     private static final String DOG_VERSION = "v0.2.0";
     private static final String DOG_AUTHOR = "Tuffy Rej";
-
     private static final String ANSI_RESET = "\u001B[0m";
     private static final String ANSI_CLEAR = "\u001B[2J\u001B[H";
     private static final String ANSI_RED = "\u001B[31m";
-
     private final List<String> history = new ArrayList<String>();
     private final List<String> taskHistory = new ArrayList<String>();
-
     private final DogContext ctx = Code.newContext();
     private final DogVM vm = new DogVM();
     private final BytecodeCompiler compiler = new BytecodeCompiler();
-
     private Path cwd = Paths.get(System.getProperty("user.dir")).toAbsolutePath().normalize();
-
     private Path clipboardPath = null;
     private boolean clipboardCut = false;
-
-    // ===== Projects =====
     private final Path appRoot = Paths.get(System.getProperty("user.dir")).toAbsolutePath().normalize();
-
-    // !!! ВОТ ТУТ имя папки проектов !!!
     private final Path projectsRoot = appRoot.resolve("My_projects").toAbsolutePath().normalize();
-
     private final Path stateFile = projectsRoot.resolve(".dpl_state");
     private String currentProject = null;
-
-    // ===== Console colors / ANSI =====
     private final boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
     private boolean ansiEnabled = true;
-
-    // ===== Aliases / time =====
     private boolean timingEnabled = false;
-    private boolean historyDirty = false; // * в prompt, если были изменения (Dog-код вводили) и не сохраняли
+    private boolean historyDirty = false;
 
     public void start() {
         DogLog.init();
-
         initProjectsFolder();
         ansiEnabled = detectAnsiSupport();
         loadLastProject();
-
         clearScreen();
         printLogo();
         printHeader();
-
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-
         while (true) {
             try {
                 System.out.print(prompt());
                 String line = br.readLine();
                 if (line == null)
                     break;
-
                 String t = line.trim();
                 if (t.isEmpty())
                     continue;
-
                 if (t.startsWith(":")) {
                     if (handleCommand(t, br))
                         break;
                     continue;
                 }
-
                 history.add(line);
                 historyDirty = true;
                 logTask("DOG> " + line);
-
                 long t0 = timingEnabled ? System.nanoTime() : 0L;
                 runDogLines(singleLineList(line));
                 if (timingEnabled)
                     printExecTime(System.nanoTime() - t0);
-
             } catch (DogException e) {
                 printDogErrorRed(e);
                 DogLog.error("DOG", e.formatForLog());
@@ -100,14 +77,12 @@ public class DogConsole {
                 DogLog.error("RUNTIME", "Console runtime error: " + e.getMessage(), e);
             }
         }
-
         System.out.println("\nBye!");
     }
 
     private String prompt() {
         String folder = (cwd.getFileName() == null) ? cwd.toString() : cwd.getFileName().toString();
         String star = historyDirty ? "*" : "";
-
         if (currentProject != null) {
             return "dog[" + currentProject + "/" + folder + star + "]> ";
         }
@@ -121,7 +96,7 @@ public class DogConsole {
                         " /|  _ \\  _    _    |  _ \\ | |                                \n" +
                         "  | | | |/ _ \\ / _` | |_)  | |                                \n" +
                         "  | |_| | (_) | (_| |     /| |_                               \n" +
-                        " \\|____/ \\___/ \\__, |_|   \\|_____|                             \n" +
+                        " \\|____/ \\___/ \\__, |_|    |_____|                             \n" +
                         "               |___/                                           \n" +
                         "                                                              \n" +
                         "                 Dog Programming Language (DPL)               \n" +
@@ -142,7 +117,6 @@ public class DogConsole {
             System.out.flush();
             return;
         }
-
         if (isWindows) {
             try {
                 new ProcessBuilder("cmd", "/c", "cls").inheritIO().start().waitFor();
@@ -150,7 +124,6 @@ public class DogConsole {
             } catch (Exception ignored) {
             }
         }
-
         for (int i = 0; i < 60; i++)
             System.out.println();
     }
@@ -198,12 +171,9 @@ public class DogConsole {
 
     private boolean handleCommand(String cmdLine, BufferedReader br) throws IOException {
         logTask("CMD " + cmdLine);
-
         List<String> args = tokenize(cmdLine);
         if (args.isEmpty())
             return false;
-
-        // --- aliases ---
         String cmd0 = args.get(0).toLowerCase();
         if (cmd0.equals(":h"))
             args.set(0, ":help");
@@ -211,31 +181,25 @@ public class DogConsole {
             args.set(0, ":exit");
         if (cmd0.equals(":r"))
             args.set(0, ":run");
-
         String cmd = args.get(0);
-
-        // -------- basics --------
         if (cmd.equals(":help")) {
             printHelp();
             return false;
         }
         if (cmd.equals(":exit"))
             return true;
-
         if (cmd.equals(":cls") || cmd.equals(":clearconsole")) {
             clearScreen();
             printLogo();
             printHeader();
             return false;
         }
-
         if (cmd.equals(":clear")) {
             history.clear();
             historyDirty = false;
             System.out.println("Dog-code history cleared.");
             return false;
         }
-
         if (cmd.equals(":clearall")) {
             history.clear();
             taskHistory.clear();
@@ -243,7 +207,6 @@ public class DogConsole {
             System.out.println("All history cleared (dog + tasks).");
             return false;
         }
-
         if (cmd.equals(":history")) {
             printTaskHistory();
             return false;
@@ -252,8 +215,6 @@ public class DogConsole {
             printInfo();
             return false;
         }
-
-        // -------- time --------
         if (cmd.equals(":time")) {
             if (args.size() < 2) {
                 System.out.println("Usage: :time on | :time off");
@@ -275,7 +236,6 @@ public class DogConsole {
             return false;
         }
 
-        // -------- projects --------
         if (cmd.equals(":proj") || cmd.equals(":project")) {
             if (args.size() < 2) {
                 System.out.println("Usage:");
@@ -288,15 +248,12 @@ public class DogConsole {
                 System.out.println("  :proj exit          (alias: off)");
                 return false;
             }
-
             String sub = args.get(1).toLowerCase();
-
             try {
                 if (sub.equals("list")) {
                     listProjects();
                     return false;
                 }
-
                 if (sub.equals("new")) {
                     if (args.size() < 3) {
                         errln("Usage: :proj new <name>");
@@ -305,7 +262,6 @@ public class DogConsole {
                     createProject(args.get(2));
                     return false;
                 }
-
                 if (sub.equals("open") || sub.equals("use")) {
                     if (args.size() < 3) {
                         errln("Usage: :proj open <name>");
@@ -314,7 +270,6 @@ public class DogConsole {
                     useProject(args.get(2));
                     return false;
                 }
-
                 if (sub.equals("del")) {
                     if (args.size() < 3) {
                         errln("Usage: :proj del <name>");
@@ -323,43 +278,34 @@ public class DogConsole {
                     deleteProject(args.get(2), br);
                     return false;
                 }
-
                 if (sub.equals("path")) {
                     printProjectPath();
                     return false;
                 }
-
                 if (sub.equals("init")) {
                     initProjectSkeleton();
                     return false;
                 }
-
                 if (sub.equals("exit") || sub.equals("off")) {
                     leaveProject();
                     return false;
                 }
-
                 errln("Unknown :proj subcommand. Use: list|new|open|del|path|init|exit");
                 return false;
-
             } catch (IllegalArgumentException ex) {
                 errln(ex.getMessage());
                 return false;
             }
         }
 
-        // -------- log cleaning --------
         if (cmd.equals(":logclear") || cmd.equals(":clearlog")) {
             clearLogFolder(br);
             return false;
         }
-
-        // -------- filesystem --------
         if (cmd.equals(":pwd")) {
             System.out.println(cwd.toString());
             return false;
         }
-
         if (cmd.equals(":refresh")) {
             if (!Files.exists(cwd)) {
                 errln("Warning: current directory does not exist anymore. Resetting to user.dir");
@@ -369,12 +315,10 @@ public class DogConsole {
             listDir();
             return false;
         }
-
         if (cmd.equals(":ls")) {
             listDir();
             return false;
         }
-
         if (cmd.equals(":tree")) {
             int depth = 4;
             if (args.size() >= 2)
@@ -385,7 +329,6 @@ public class DogConsole {
             printTree(start, depth);
             return false;
         }
-
         if (cmd.equals(":cd")) {
             if (args.size() < 2) {
                 errln("Usage: :cd <folder|..>");
@@ -394,7 +337,6 @@ public class DogConsole {
             changeDir(args.get(1));
             return false;
         }
-
         if (cmd.equals(":mkdir")) {
             if (args.size() < 2) {
                 errln("Usage: :mkdir <folder>");
@@ -403,7 +345,6 @@ public class DogConsole {
             mkdir(args.get(1));
             return false;
         }
-
         if (cmd.equals(":touch")) {
             if (args.size() < 2) {
                 errln("Usage: :touch <file>");
@@ -412,7 +353,6 @@ public class DogConsole {
             touch(args.get(1));
             return false;
         }
-
         if (cmd.equals(":open")) {
             if (args.size() < 2) {
                 errln("Usage: :open <file>");
@@ -421,7 +361,6 @@ public class DogConsole {
             openFile(args.get(1));
             return false;
         }
-
         if (cmd.equals(":edit")) {
             if (args.size() < 2) {
                 errln("Usage: :edit <file>");
@@ -430,8 +369,6 @@ public class DogConsole {
             editFile(args.get(1), br);
             return false;
         }
-
-        // -------- run / compile --------
         if (cmd.equals(":run")) {
             if (args.size() < 2) {
                 errln("Usage: :run <file.dog | file.dogc>");
@@ -443,7 +380,6 @@ public class DogConsole {
                 printExecTime(System.nanoTime() - t0);
             return false;
         }
-
         if (cmd.equals(":compile") || cmd.equals(":c")) {
             if (args.size() < 2) {
                 errln("Usage: :compile <file.dog> [outFile.dogc]");
@@ -454,7 +390,6 @@ public class DogConsole {
             compileDogToDogc(in, out);
             return false;
         }
-
         if (cmd.equals(":runc")) {
             if (args.size() < 2) {
                 errln("Usage: :runc <file.dogc>");
@@ -466,7 +401,6 @@ public class DogConsole {
                 printExecTime(System.nanoTime() - t0);
             return false;
         }
-
         if (cmd.equals(":save")) {
             if (args.size() < 2) {
                 errln("Usage: :save <file.dog>");
@@ -476,13 +410,10 @@ public class DogConsole {
             historyDirty = false;
             return false;
         }
-
         if (cmd.equals(":vars")) {
             System.out.println(vm.globals());
             return false;
         }
-
-        // -------- delete / copy / move / clipboard --------
         if (cmd.equals(":rm") || cmd.equals(":del")) {
             if (args.size() < 2) {
                 errln("Usage: :rm <file|folder>");
@@ -491,7 +422,6 @@ public class DogConsole {
             deletePathSafe(resolveSmart(args.get(1)), br);
             return false;
         }
-
         if (cmd.equals(":cp")) {
             if (args.size() < 3) {
                 errln("Usage: :cp <src> <dst>");
@@ -500,7 +430,6 @@ public class DogConsole {
             copyPath(resolveSmart(args.get(1)), resolveSmart(args.get(2)));
             return false;
         }
-
         if (cmd.equals(":mv") || cmd.equals(":move")) {
             if (args.size() < 3) {
                 errln("Usage: :mv <src> <dst>");
@@ -509,7 +438,6 @@ public class DogConsole {
             movePath(resolveSmart(args.get(1)), resolveSmart(args.get(2)));
             return false;
         }
-
         if (cmd.equals(":copy")) {
             if (args.size() < 2) {
                 errln("Usage: :copy <src>");
@@ -520,7 +448,6 @@ public class DogConsole {
             System.out.println("Copied to clipboard: " + clipboardPath);
             return false;
         }
-
         if (cmd.equals(":cut")) {
             if (args.size() < 2) {
                 errln("Usage: :cut <src>");
@@ -531,7 +458,6 @@ public class DogConsole {
             System.out.println("Cut to clipboard: " + clipboardPath);
             return false;
         }
-
         if (cmd.equals(":paste")) {
             if (clipboardPath == null) {
                 errln("Clipboard is empty.Use :copy <src> or :cut <src> first.");
@@ -545,8 +471,6 @@ public class DogConsole {
             pasteClipboard(dst);
             return false;
         }
-
-        // -------- colors --------
         if (cmd.equals(":color")) {
             if (args.size() < 2) {
                 System.out.println("Usage:");
@@ -568,7 +492,6 @@ public class DogConsole {
             setColors(fg, bg);
             return false;
         }
-
         errln("Unknown command. Type :help");
         return false;
     }
@@ -585,7 +508,6 @@ public class DogConsole {
         System.out.println("  :logclear / :clearlog      - delete all files in ./log (asks confirmation)");
         System.out.println("  :time on|off                - measure execution time of Dog code");
         System.out.println();
-
         System.out.println("Filesystem:");
         System.out.println("  :pwd                       - print current directory");
         System.out.println("  :refresh                   - refresh current dir status + list");
@@ -598,7 +520,6 @@ public class DogConsole {
         System.out.println("  :edit <file>               - edit file (end :wq, cancel :q, undo :back)");
         System.out.println("  :rm <file|folder>          - SAFE delete (asks confirmation, blocks cwd/parents)");
         System.out.println();
-
         System.out.println("Copy / Move:");
         System.out.println("  :cp <src> <dst>            - copy file/folder to destination");
         System.out.println("  :mv <src> <dst>            - move file/folder to destination");
@@ -606,7 +527,6 @@ public class DogConsole {
         System.out.println("  :cut <src>                 - cut (move on paste) to clipboard");
         System.out.println("  :paste <dstFolderOrPath>   - paste from clipboard");
         System.out.println();
-
         System.out.println("Dog:");
         System.out.println("  :run / :r <file.dog|file.dogc> - run .dog source or .dogc bytecode (same session)");
         System.out.println("  :compile <file.dog> [out]  - compile .dog -> .dogc (no run)");
@@ -614,7 +534,6 @@ public class DogConsole {
         System.out.println("  :save <file.dog>           - save dog session history to file");
         System.out.println("  :vars                      - show variables in current session");
         System.out.println();
-
         System.out.println("Projects:");
         System.out.println("  :proj list                 - list projects (in ./My_projects)");
         System.out.println("  :proj new <name>           - create and enter project");
@@ -624,7 +543,6 @@ public class DogConsole {
         System.out.println("  :proj init                 - create main.dog + src/out/lib");
         System.out.println("  :proj exit                 - leave project (back to app root)");
         System.out.println();
-
         System.out.println("Colors:");
         System.out.println("  :color reset               - reset colors");
         System.out.println("  :color <fg> [bg]           - set text color and optional background");
@@ -665,15 +583,12 @@ public class DogConsole {
         ArrayList<String> out = new ArrayList<String>();
         StringBuilder cur = new StringBuilder();
         boolean inQuotes = false;
-
         for (int i = 0; i < line.length(); i++) {
             char c = line.charAt(i);
-
             if (c == '"') {
                 inQuotes = !inQuotes;
                 continue;
             }
-
             if (!inQuotes && Character.isWhitespace(c)) {
                 if (cur.length() > 0) {
                     out.add(cur.toString());
@@ -681,10 +596,8 @@ public class DogConsole {
                 }
                 continue;
             }
-
             cur.append(c);
         }
-
         if (cur.length() > 0)
             out.add(cur.toString());
         if (out.isEmpty())
@@ -760,7 +673,6 @@ public class DogConsole {
 
     private void changeDir(String arg) {
         Path target = resolveSmart(arg);
-
         if (!Files.exists(target)) {
             errln("Folder not found: " + arg);
             return;
@@ -769,7 +681,6 @@ public class DogConsole {
             errln("Not a folder: " + arg);
             return;
         }
-
         cwd = target;
         System.out.println("Current directory: " + cwd);
     }
@@ -799,7 +710,6 @@ public class DogConsole {
 
     private void openFile(String name) throws IOException {
         Path file = resolveSmart(name);
-
         if (!Files.exists(file)) {
             errln("File not found: " + name);
             return;
@@ -808,10 +718,8 @@ public class DogConsole {
             errln("This is a folder. Use :cd \"" + file + "\"");
             return;
         }
-
         List<String> lines = Files.readAllLines(file, StandardCharsets.UTF_8);
         System.out.println("----- " + file.getFileName() + " -----");
-
         if (lines.isEmpty())
             System.out.println("(empty)");
         else {
@@ -824,25 +732,20 @@ public class DogConsole {
 
     private void editFile(String name, BufferedReader br) throws IOException {
         Path file = resolveSmart(name);
-
         if (Files.exists(file) && Files.isDirectory(file)) {
             errln("Cannot edit a directory: " + name);
             return;
         }
-
         List<String> original = new ArrayList<String>();
         if (Files.exists(file))
             original = Files.readAllLines(file, StandardCharsets.UTF_8);
-
         System.out.println("Editing: " + file.getFileName());
         System.out.println("Type lines. Finish with :wq (save & quit), cancel with :q (quit without saving).");
         System.out.println("Edit helpers:");
         System.out.println("  :back / :undo      - remove last added line (step back)");
         System.out.println("  :del N             - delete line N (1-based) from the current buffer");
         System.out.println("  :show              - show current buffer content");
-
         List<String> buffer = new ArrayList<String>(original);
-
         while (true) {
             System.out.print("edit> ");
             String line = br.readLine();
@@ -851,12 +754,10 @@ public class DogConsole {
                 return;
             }
             String t = line.trim();
-
             if (t.equals(":q")) {
                 System.out.println("Canceled. Nothing saved.");
                 return;
             }
-
             if (t.equals(":back") || t.equals(":undo")) {
                 if (buffer.isEmpty())
                     errln("Nothing to undo (buffer is empty).");
@@ -866,7 +767,6 @@ public class DogConsole {
                 }
                 continue;
             }
-
             if (t.equals(":show")) {
                 if (buffer.isEmpty())
                     System.out.println("(buffer is empty)");
@@ -879,7 +779,6 @@ public class DogConsole {
                 }
                 continue;
             }
-
             if (t.startsWith(":del")) {
                 String[] parts = t.split("\\s+");
                 if (parts.length < 2) {
@@ -893,7 +792,6 @@ public class DogConsole {
                     errln("Bad line number: " + parts[1]);
                     continue;
                 }
-
                 if (n < 1 || n > buffer.size()) {
                     errln("Line out of range. Buffer size=" + buffer.size());
                     continue;
@@ -902,19 +800,15 @@ public class DogConsole {
                 System.out.println("Deleted line " + n + ": " + removed);
                 continue;
             }
-
             if (t.equals(":wq")) {
                 Path parent = file.getParent();
                 if (parent != null)
                     Files.createDirectories(parent);
-
                 Files.write(file, buffer, StandardCharsets.UTF_8,
                         StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-
                 System.out.println("Saved: " + file);
                 return;
             }
-
             buffer.add(line);
         }
     }
@@ -937,7 +831,6 @@ public class DogConsole {
             errln("File not found: " + fileName);
             return;
         }
-
         List<String> lines = Files.readAllLines(file, StandardCharsets.UTF_8);
         logTask("RUN " + file.toString());
         runDogLines(lines);
@@ -949,7 +842,6 @@ public class DogConsole {
             errln("File not found: " + fileName);
             return;
         }
-
         logTask("RUN-C " + file.toString());
         Chunk chunk = DogBytecodeIO.readChunk(file);
         vm.execute(chunk, ctx);
@@ -960,28 +852,23 @@ public class DogConsole {
             errln("Error: source must end with .dog");
             return;
         }
-
         Path src = resolveSmart(srcDog);
         if (!Files.exists(src)) {
             errln("File not found: " + srcDog);
             return;
         }
-
         String outName = outDogc;
         if (outName == null || outName.trim().isEmpty()) {
             String s = src.getFileName().toString();
             outName = s.substring(0, s.length() - 4) + ".dogc";
         }
-
         Path out = resolveSmart(outName);
         Path parent = out.getParent();
         if (parent != null)
             Files.createDirectories(parent);
-
         List<String> lines = Files.readAllLines(src, StandardCharsets.UTF_8);
         Chunk chunk = compiler.compile(lines);
         DogBytecodeIO.writeChunk(chunk, out);
-
         System.out.println("Compiled: " + src.getFileName() + " -> " + out);
     }
 
@@ -990,21 +877,17 @@ public class DogConsole {
             errln("Error: file must end with .dog");
             return;
         }
-
         Path file = resolveSmart(fileName);
         Path parent = file.getParent();
         if (parent != null)
             Files.createDirectories(parent);
-
         Files.write(file, history, StandardCharsets.UTF_8,
                 StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-
         System.out.println("Saved dog history: " + file);
     }
 
     private void deletePathSafe(Path p, BufferedReader br) throws IOException {
         Path target = norm(p);
-
         if (!Files.exists(target)) {
             errln("Not found: " + target);
             return;
@@ -1013,19 +896,16 @@ public class DogConsole {
             errln("Refusing to delete root: " + target);
             return;
         }
-
         if (isSameOrParentOfCwd(target)) {
             errln("Refusing to delete current directory or its parent:");
             System.out.println("  CWD:    " + norm(cwd));
             System.out.println("  Target: " + target);
             return;
         }
-
         if (!confirmDelete(target, br)) {
             System.out.println("Canceled.");
             return;
         }
-
         deleteRecursive(target);
         System.out.println("Deleted: " + target);
     }
@@ -1059,16 +939,13 @@ public class DogConsole {
     private void copyPath(Path src, Path dst) throws IOException {
         src = norm(src);
         dst = norm(dst);
-
         if (!Files.exists(src)) {
             errln("Source not found: " + src);
             return;
         }
-
         if (Files.exists(dst) && Files.isDirectory(dst)) {
             dst = dst.resolve(src.getFileName());
         }
-
         copyRecursive(src, dst);
         System.out.println("Copied: " + src + " -> " + dst);
     }
@@ -1109,22 +986,18 @@ public class DogConsole {
             errln("Source not found: " + src);
             return;
         }
-
         if (Files.exists(dst) && Files.isDirectory(dst)) {
             dst = dst.resolve(src.getFileName());
         }
-
         Path parent = dst.getParent();
         if (parent != null)
             Files.createDirectories(parent);
-
         try {
             Files.move(src, dst, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException ex) {
             copyRecursive(src, dst);
             deleteRecursive(src);
         }
-
         System.out.println("Moved: " + src + " -> " + dst);
     }
 
@@ -1133,21 +1006,17 @@ public class DogConsole {
             errln("Clipboard is empty.");
             return;
         }
-
         Path src = norm(clipboardPath);
         dst = norm(dst);
-
         if (!Files.exists(src)) {
             errln("Clipboard source not found anymore: " + src);
             clipboardPath = null;
             clipboardCut = false;
             return;
         }
-
         if (Files.exists(dst) && Files.isDirectory(dst)) {
             dst = dst.resolve(src.getFileName());
         }
-
         if (clipboardCut) {
             movePath(src, dst);
             clipboardPath = null;
@@ -1159,7 +1028,6 @@ public class DogConsole {
 
     private void printTree(Path start, int maxDepth) throws IOException {
         start = norm(start);
-
         if (!Files.exists(start)) {
             errln("Not found: " + start);
             return;
@@ -1168,7 +1036,6 @@ public class DogConsole {
             System.out.println(start.getFileName());
             return;
         }
-
         System.out.println(start);
         walkTree(start, start, "", 0, maxDepth);
     }
@@ -1176,13 +1043,11 @@ public class DogConsole {
     private void walkTree(Path root, Path dir, String prefix, int depth, int maxDepth) throws IOException {
         if (depth >= maxDepth)
             return;
-
         List<Path> children = new ArrayList<Path>();
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
             for (Path p : stream)
                 children.add(p);
         }
-
         children.sort(new Comparator<Path>() {
             @Override
             public int compare(Path a, Path b) {
@@ -1197,14 +1062,11 @@ public class DogConsole {
         for (int i = 0; i < children.size(); i++) {
             Path p = children.get(i);
             boolean last = (i == children.size() - 1);
-
             String connector = last ? "└── " : "├── ";
             String name = p.getFileName().toString();
             if (Files.isDirectory(p))
                 name += "/";
-
             System.out.println(prefix + connector + name);
-
             if (Files.isDirectory(p)) {
                 String nextPrefix = prefix + (last ? "    " : "│   ");
                 walkTree(root, p, nextPrefix, depth + 1, maxDepth);
@@ -1216,27 +1078,22 @@ public class DogConsole {
         if (ansiEnabled) {
             String fgCode = colorFgCode(fg);
             String bgCode = (bg == null) ? "" : colorBgCode(bg);
-
             if (fgCode == null || (bg != null && bgCode == null)) {
                 errln("Unknown color. Use: black red green yellow blue magenta cyan white");
                 return;
             }
-
             System.out.print("\u001B[" + fgCode + (bgCode.isEmpty() ? "" : ";" + bgCode) + "m");
             System.out.println("Colors set: fg=" + fg + (bg == null ? "" : (" bg=" + bg)));
             return;
         }
-
         if (isWindows) {
             String fgHex = cmdColorHex(fg);
             String bgHex = (bg == null) ? "0" : cmdColorHex(bg);
-
             if (fgHex == null || bgHex == null) {
                 errln("Unknown color. Use: black red green yellow blue magenta cyan white");
                 return;
             }
-
-            String code = bgHex + fgHex; // CMD uses BG FG
+            String code = bgHex + fgHex;
             if (runCmdColor(code)) {
                 System.out.println("Colors set (CMD): fg=" + fg + (bg == null ? "" : (" bg=" + bg)));
             } else {
@@ -1244,7 +1101,6 @@ public class DogConsole {
             }
             return;
         }
-
         System.out.println("Colors not supported in this console.");
     }
 
@@ -1290,9 +1146,6 @@ public class DogConsole {
         return null;
     }
 
-    // ==========================================================
-    // LOG CLEANER
-    // ==========================================================
     private void clearLogFolder(BufferedReader br) throws IOException {
         Path logDir = Paths.get("log").toAbsolutePath().normalize();
         if (!Files.exists(logDir)) {
@@ -1303,13 +1156,11 @@ public class DogConsole {
             errln("log exists but it's not a folder: " + logDir);
             return;
         }
-
         int count = countFiles(logDir);
         if (count == 0) {
             System.out.println("log/ is already empty.");
             return;
         }
-
         System.out.println("This will delete " + count + " file(s) inside:");
         System.out.println("  " + logDir);
         System.out.print("Type YES to confirm: ");
@@ -1319,7 +1170,7 @@ public class DogConsole {
             return;
         }
         deleteAllFilesInside(logDir);
-        System.out.println("✅ log/ cleaned.");
+        System.out.println("log/ cleaned.");
         DogLog.warn("LOG", "User cleaned log folder: " + logDir);
     }
 
@@ -1356,9 +1207,6 @@ public class DogConsole {
         });
     }
 
-    // ==========================================================
-    // Projects + state
-    // ==========================================================
     private void initProjectsFolder() {
         try {
             Files.createDirectories(projectsRoot);
@@ -1373,7 +1221,6 @@ public class DogConsole {
                 System.out.println("(no projects folder)");
                 return;
             }
-
             List<Path> items = new ArrayList<Path>();
             try (DirectoryStream<Path> ds = Files.newDirectoryStream(projectsRoot)) {
                 for (Path p : ds) {
@@ -1381,19 +1228,16 @@ public class DogConsole {
                         items.add(p);
                 }
             }
-
             items.sort(new Comparator<Path>() {
                 @Override
                 public int compare(Path a, Path b) {
                     return a.getFileName().toString().compareToIgnoreCase(b.getFileName().toString());
                 }
             });
-
             if (items.isEmpty()) {
                 System.out.println("(no projects yet)");
                 return;
             }
-
             System.out.println("Projects in: " + projectsRoot);
             for (Path p : items)
                 System.out.println(" - " + p.getFileName());
@@ -1405,7 +1249,6 @@ public class DogConsole {
     private void createProject(String name) {
         String pr = sanitizeProjectName(name);
         Path dir = projectsRoot.resolve(pr).toAbsolutePath().normalize();
-
         try {
             Files.createDirectories(dir);
             currentProject = pr;
@@ -1421,12 +1264,10 @@ public class DogConsole {
     private void useProject(String name) {
         String pr = sanitizeProjectName(name);
         Path dir = projectsRoot.resolve(pr).toAbsolutePath().normalize();
-
         if (!Files.exists(dir) || !Files.isDirectory(dir)) {
             errln("Project not found: " + pr);
             return;
         }
-
         currentProject = pr;
         cwd = dir;
         saveLastProject();
@@ -1437,12 +1278,10 @@ public class DogConsole {
     private void deleteProject(String name, BufferedReader br) throws IOException {
         String pr = sanitizeProjectName(name);
         Path dir = projectsRoot.resolve(pr).toAbsolutePath().normalize();
-
         if (!Files.exists(dir) || !Files.isDirectory(dir)) {
             errln("Project not found: " + pr);
             return;
         }
-
         System.out.println("WARNING: This will permanently delete project:");
         System.out.println("  " + pr);
         System.out.println("  " + dir);
@@ -1452,11 +1291,9 @@ public class DogConsole {
             System.out.println("Canceled.");
             return;
         }
-
         if (pr.equals(currentProject)) {
             leaveProject();
         }
-
         deleteRecursive(dir);
         System.out.println("Deleted project: " + pr);
     }
@@ -1477,18 +1314,15 @@ public class DogConsole {
             errln("No active project. Use :proj new <name> or :proj open <name>");
             return;
         }
-
         Path prDir = projectsRoot.resolve(currentProject).toAbsolutePath().normalize();
         Path src = prDir.resolve("src");
         Path out = prDir.resolve("out");
         Path lib = prDir.resolve("lib");
         Path main = prDir.resolve("main.dog");
-
         try {
             Files.createDirectories(src);
             Files.createDirectories(out);
             Files.createDirectories(lib);
-
             if (!Files.exists(main)) {
                 List<String> tpl = Arrays.asList(
                         "// main.dog (DPL)",
@@ -1496,13 +1330,11 @@ public class DogConsole {
                         "", "// tip: put sources into ./src and run with :run main.dog");
                 Files.write(main, tpl, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
             }
-
-            System.out.println("✅ Project initialized:");
+            System.out.println("Project initialized:");
             System.out.println(" - " + src);
             System.out.println(" - " + out);
             System.out.println(" - " + lib);
             System.out.println(" - " + main);
-
         } catch (IOException e) {
             errln("Project init error: " + e.getMessage());
         }
@@ -1511,7 +1343,7 @@ public class DogConsole {
     private void leaveProject() {
         currentProject = null;
         cwd = appRoot;
-        saveLastProject(); // will delete state file
+        saveLastProject();
         System.out.println("Left project. CWD: " + cwd);
     }
 
@@ -1522,11 +1354,9 @@ public class DogConsole {
             List<String> lines = Files.readAllLines(stateFile, StandardCharsets.UTF_8);
             if (lines.isEmpty())
                 return;
-
             String pr = lines.get(0).trim();
             if (pr.isEmpty())
                 return;
-
             Path dir = projectsRoot.resolve(pr).toAbsolutePath().normalize();
             if (Files.isDirectory(dir)) {
                 currentProject = pr;
@@ -1565,21 +1395,16 @@ public class DogConsole {
         return s;
     }
 
-    // ==========================================================
-    // ANSI / CMD detect + CMD color helper
-    // ==========================================================
     private boolean detectAnsiSupport() {
         if (!isWindows)
             return true;
-
-        String wt = System.getenv("WT_SESSION"); // Windows Terminal
-        String term = System.getenv("TERM"); // sometimes set in modern shells
+        String wt = System.getenv("WT_SESSION");
+        String term = System.getenv("TERM");
         if (wt != null && !wt.isEmpty())
             return true;
         if (term != null && !term.isEmpty())
             return true;
-
-        return false; // old cmd
+        return false;
     }
 
     private boolean runCmdColor(String twoHex) {

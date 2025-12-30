@@ -17,29 +17,24 @@ public final class StringModule implements DogModule {
             String s = requireString(args.get(0), line, col, fullLine);
             return Value.ofInt(s.length());
         });
-
         fns.put("upper", (args, ctx, line, col, fullLine) -> {
             requireCount(args, 1, "upper", line, col, fullLine);
             return Value.str(requireString(args.get(0), line, col, fullLine).toUpperCase());
         });
-
         fns.put("lower", (args, ctx, line, col, fullLine) -> {
             requireCount(args, 1, "lower", line, col, fullLine);
             return Value.str(requireString(args.get(0), line, col, fullLine).toLowerCase());
         });
-
         fns.put("trim", (args, ctx, line, col, fullLine) -> {
             requireCount(args, 1, "trim", line, col, fullLine);
             return Value.str(requireString(args.get(0), line, col, fullLine).trim());
         });
-
         fns.put("contains", (args, ctx, line, col, fullLine) -> {
             requireCount(args, 2, "contains", line, col, fullLine);
             String s = requireString(args.get(0), line, col, fullLine);
             String sub = requireString(args.get(1), line, col, fullLine);
             return Value.bool(s.contains(sub));
         });
-
         fns.put("replace", (args, ctx, line, col, fullLine) -> {
             requireCount(args, 3, "replace", line, col, fullLine);
             String s = requireString(args.get(0), line, col, fullLine);
@@ -47,8 +42,6 @@ public final class StringModule implements DogModule {
             String b = requireString(args.get(2), line, col, fullLine);
             return Value.str(s.replace(a, b));
         });
-
-        // str.split("a,b,c", ",") -> ["a","b","c"]
         fns.put("split", (args, ctx, line, col, fullLine) -> {
             requireCount(args, 2, "split", line, col, fullLine);
             String s = requireString(args.get(0), line, col, fullLine);
@@ -59,8 +52,6 @@ public final class StringModule implements DogModule {
                 out.add(Value.str(p));
             return Value.array(out);
         });
-
-        // str.join(["a","b"], "-") -> "a-b"
         fns.put("join", (args, ctx, line, col, fullLine) -> {
             requireCount(args, 2, "join", line, col, fullLine);
             Value arr = args.get(0);
@@ -76,8 +67,6 @@ public final class StringModule implements DogModule {
             }
             return Value.str(sb.toString());
         });
-
-        // str.sub("hello", 1, 4) -> "ell"
         fns.put("sub", (args, ctx, line, col, fullLine) -> {
             requireCount(args, 3, "sub", line, col, fullLine);
             String s = requireString(args.get(0), line, col, fullLine);

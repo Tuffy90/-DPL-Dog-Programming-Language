@@ -1,5 +1,3 @@
-
-// File: Value.java
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -16,43 +14,33 @@ public final class Value {
     }
 
     public final Kind kind;
-
     public final int intVal;
     public final long longVal;
     public final double doubleVal;
     public final BigInteger bigIntVal;
-
     public final String stringVal;
     public final boolean boolVal;
-
     public final ArrayList<Value> arrayVal;
-
-    // function payload
     public final FunctionProto funcProto;
-    public final Map<String, Value> closure; // captured snapshot
+    public final Map<String, Value> closure;
 
     private Value(Kind kind,
             int intVal, long longVal, double doubleVal, BigInteger bigIntVal,
             String stringVal, boolean boolVal,
             ArrayList<Value> arrayVal,
             FunctionProto funcProto, Map<String, Value> closure) {
-
         this.kind = kind;
         this.intVal = intVal;
         this.longVal = longVal;
         this.doubleVal = doubleVal;
         this.bigIntVal = bigIntVal;
-
         this.stringVal = stringVal;
         this.boolVal = boolVal;
-
         this.arrayVal = arrayVal;
-
         this.funcProto = funcProto;
         this.closure = closure;
     }
 
-    // ---- constructors ----
     public static Value ofInt(int v) {
         return new Value(Kind.INT, v, 0L, 0.0, null, null, false, null, null, null);
     }
@@ -97,7 +85,6 @@ public final class Value {
         return new Value(Kind.FUNCTION, 0, 0L, 0.0, null, null, false, null, proto, cap);
     }
 
-    // ---- checks ----
     public boolean isNumber() {
         return kind == Kind.INT || kind == Kind.LONG || kind == Kind.DOUBLE || kind == Kind.BIGINT;
     }
@@ -122,7 +109,6 @@ public final class Value {
         return kind == Kind.FUNCTION;
     }
 
-    // ---- conversions ----
     public double toDouble() {
         switch (kind) {
             case INT:
@@ -156,7 +142,6 @@ public final class Value {
     public static Value fromBigInteger(BigInteger bi) {
         if (bi == null)
             return Value.ofInt(0);
-
         if (bi.bitLength() <= 31)
             return Value.ofInt(bi.intValue());
         if (bi.bitLength() <= 63)
@@ -164,7 +149,6 @@ public final class Value {
         return Value.ofBigInt(bi);
     }
 
-    // ---- printable ----
     public String printable() {
         switch (kind) {
             case STRING:
@@ -173,21 +157,18 @@ public final class Value {
                 return boolVal ? "true" : "false";
             case NIL:
                 return "nil";
-
             case INT:
                 return String.valueOf(intVal);
             case LONG:
                 return String.valueOf(longVal);
             case BIGINT:
                 return bigIntVal.toString();
-
             case DOUBLE: {
                 double v = doubleVal;
                 if (v == Math.rint(v))
                     return String.valueOf((long) v);
                 return String.valueOf(v);
             }
-
             case ARRAY: {
                 StringBuilder sb = new StringBuilder();
                 sb.append("[");
@@ -199,7 +180,6 @@ public final class Value {
                 sb.append("]");
                 return sb.toString();
             }
-
             case FUNCTION:
                 return "<fn(" + String.join(",", funcProto.params) + ")>";
         }
