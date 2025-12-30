@@ -1,0 +1,70 @@
+import io
+import math
+
+say "=== INT ==="
+let a = 10
+say a
+say "a + 5 = " + (a + 5)
+say "a * 3 = " + (a * 3)
+say "a / 4 = " + (a / 4)
+
+say ""
+say "=== LONG (большое целое, но влезает в long) ==="
+let l = 3000000000
+say l
+say "l + 7 = " + (l + 7)
+say "l * 2 = " + (l * 2)
+
+say ""
+say "=== BIGINT (очень большое целое) ==="
+let big = 9999999999999999999999999999999999999999
+say big
+say "big + 1 = " + (big + 1)
+say "big * 2 = " + (big * 2)
+
+say ""
+say "=== DOUBLE ==="
+let d = 3.14159
+say d
+say "d * 2 = " + (d * 2)
+say "d / 3 = " + (d / 3)
+
+say ""
+say "=== MATH MODULE ==="
+say "math.PI = " + math.PI
+say "math.E  = " + math.E
+say "sqrt(144) = " + math.sqrt(144)
+say "pow(2, 8) = " + math.pow(2, 8)
+
+say ""
+say "=== BOOL / NIL ==="
+let ok = true
+let no = false
+let empty = nil
+say "ok = " + ok
+say "no = " + no
+say "empty = " + empty
+say "!ok = " + !ok
+say "!no = " + !no
+say "!empty = " + !empty
+
+say ""
+say "=== COMPARE ==="
+say "10 == 10 -> " + (10 == 10)
+say "10 != 11 -> " + (10 != 11)
+say "10 <> 11 -> " + (10 <> 11)
+say "10 < 11 -> " + (10 < 11)
+say "10 <= 10 -> " + (10 <= 10)
+say "11 > 10 -> " + (11 > 10)
+say "11 >= 11 -> " + (11 >= 11)
+
+say ""
+say "=== WHILE LOOP ==="
+let i = 0
+while i < 5 {
+  say "i=" + i
+  i = i + 1
+}
+
+say ""
+io.println("=== DONE ===")

@@ -1,0 +1,93 @@
+# test_new_modules.dog
+
+import io
+import math
+import time
+import string
+import rand
+import sys
+import json
+
+say "=== TIME ==="
+say time.nowMillis()
+say time.nowSeconds()
+say time.formatNow("yyyy-MM-dd HH:mm:ss")
+say time.formatMillis(time.nowMillis(), "yyyy-MM-dd HH:mm:ss")
+
+let start = time.now()
+let dl = time.deadline(1200)
+
+say "deadline=" + dl
+say "expired?=" + time.expired(dl)
+
+time.waitUntil(dl)
+
+let end = time.now()
+say "expired after wait?=" + time.expired(dl)
+
+say "diff=" + time.diff(start, end)
+say "humanDiff=" + time.humanDiff(start, end)
+
+say "clamp=" + time.clamp(9999, 0, 2000)
+
+let x = time.addSeconds(start, 2)
+say "start+2s=" + x
+
+say "unique=" + time.unique()
+say "seed=" + time.seed()
+say time.now()
+say time.isoNow()
+say time.zone()
+say time.offsetSeconds()
+
+say time.formatNow("yyyy-MM-dd HH:mm:ss")
+
+let ms = time.parseMillis("2025-12-25 12:00", "yyyy-MM-dd HH:mm")
+say ms
+say time.isoMillis(ms)
+
+let t = time.measureStart()
+time.sleep(120)
+say time.measureEnd(t)
+
+say "=== STRING ==="
+say string.upper("Dog language")
+say string.lower("DOG LANGUAGE")
+say string.trim("   wow   ")
+say string.len("abcDEF")
+say string.contains("hello world", "world")
+say string.replace("a-b-c", "-", "/")
+say string.sub("hello", 1, 4)
+say string.join(["a","b","c"], "-")
+say string.split("a,b,c", ",")
+
+say "=== RAND ==="
+say rand.int()
+say rand.int(10)
+say rand.int(1, 10)
+say rand.double()
+say rand.bool()
+
+say "=== SYS ==="
+say sys.os()
+say sys.java()
+say sys.user()
+say sys.cwd()
+
+say "=== JSON ==="
+
+let name = "Dog \"Hero\"\nLine2"
+let safe = json.escape(name)
+say safe
+
+let arr = json.arr("bone", 10, true, nil, ["a", "b"])
+say arr
+
+# rawArr будет строкой, потому что json.arr возвращает строку
+let obj = json.obj(
+    "name", name, "level", 3, "alive", true, "items", ["meat", "water"], "rawArr", json.arr(1,2,3))
+
+say json.pretty(obj, 2)
+
+json.writePretty("data/user.json", obj, 2)
+say json.readPretty("data/user.json", 2)

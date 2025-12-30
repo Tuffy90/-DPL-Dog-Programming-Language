@@ -1,4 +1,10 @@
+#!/usr/bin/env sh
 set -eu
+
+# =========================
+# DPL - Build JAR (Unix)
+# Requires: JDK (javac + jar) + Java 8+
+# =========================
 
 ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 SRC_DIR="$ROOT/src"

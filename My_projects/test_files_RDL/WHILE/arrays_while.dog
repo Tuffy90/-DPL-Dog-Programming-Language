@@ -1,0 +1,11 @@
+let a = [1, 2, 3]
+say a
+say a[0]
+a[1] = 99
+say a
+
+let i = 0
+while i < 5 {
+  say "i=" + i
+  i = i + 1
+}

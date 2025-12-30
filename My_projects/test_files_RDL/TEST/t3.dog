@@ -1,0 +1,5 @@
+fn loop() {
+  say "loop"
+  return loop()
+}
+loop()

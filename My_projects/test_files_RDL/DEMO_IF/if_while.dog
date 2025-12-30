@@ -1,0 +1,54 @@
+# ====== Лямбды прямо в if/while ======
+
+# 1) Лямбда сразу вызывается в if (IIFE)
+let a = 12
+if ((x) => x > 10)(a) {
+  say "a > 10"
+} else {
+  say "a <= 10"
+}
+
+# 2) Выбираем “операцию” лямбдой и используем в цикле
+let op = (x, y) => x + y
+
+let mode = 2
+if mode == 1 {
+  op = (x, y) => x + y
+} else {
+  op = (x, y) => x * y
+}
+
+let i = 0
+while i < 5 {
+  say op(i, 3)     # при mode=2 будет i*3: 0,3,6,9,12
+  i = i + 1
+}
+
+# 3) Функция, которая принимает лямбду и использует её внутри while + if
+#    (фильтр по условию, тут считаем что массив длины 5)
+fn filter5(arr, pred) {
+  let out = []
+  let j = 0
+  let k = 0
+
+  while k < 5 {
+    let v = arr[k]
+    if pred(v) {
+      out[j] = v
+      j = j + 1
+    }
+    k = k + 1
+  }
+
+  return out
+}
+
+let nums = [1, 4, 2, 10, 3]
+
+let big = (x) => x > 3
+
+let res1 = filter5(nums, big)
+say res1          # [4, 10]
+
+let res2 = filter5(nums, (x) => x == 2)
+say res2          # [2]

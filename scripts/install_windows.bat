@@ -21,7 +21,6 @@ if errorlevel 1 (
   pause
   exit /b 1
 )
-
 if not exist "%JAR%" (
   echo ❌ Missing jar: "%JAR%"
   echo Build it first: scripts\build_jar_windows.bat
@@ -29,7 +28,6 @@ if not exist "%JAR%" (
   pause
   exit /b 1
 )
-
 if not exist "%ICON%" (
   echo ❌ Missing icon: "%ICON%"
   echo Put dog.ico into assets\icons\dog.ico
@@ -37,10 +35,7 @@ if not exist "%ICON%" (
   pause
   exit /b 1
 )
-
-rem Use java.exe so console is visible. For silent run use javaw.
 set "OPEN_CMD=java -jar \"%JAR%\" \"%%1\""
-
 echo ✅ Writing registry (HKCU\Software\Classes) ...
 
 reg add "HKCU\Software\Classes\%EXT%" /ve /d "%PROGID%" /f >nul

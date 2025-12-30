@@ -16,7 +16,7 @@ public final class DogContext {
     public void importModule(String name, int line, int col, String fullLine) {
         if (!registry.exists(name)) {
             throw DogException.at(line, col, fullLine,
-                    "Unknown module '" + name + "'. Available: io, math");
+                    "Unknown module '" + name + "'. Available: io, math, time, string, rand, sys, json");
         }
         imported.add(name);
     }

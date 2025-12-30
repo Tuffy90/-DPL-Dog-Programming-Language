@@ -1,28 +1,33 @@
+// File: OpCode.java
 public enum OpCode {
-    // consts
-    CONST_NUM,
+    CONST_INT,
+    CONST_LONG,
+    CONST_DOUBLE,
+    CONST_BIGINT,
     CONST_STR,
     CONST_BOOL,
     CONST_NIL,
 
-    // arithmetic
-    ADD, SUB, MUL, DIV,
+    // functions
+    CONST_FUNC, // funcIndex
+    CALL_VALUE, // argCount; callee is on stack
+    RETURN, // return from function
 
-    // logic/compare
+    ARRAY_NEW,
+    ARRAY_GET,
+    ARRAY_SET,
+
+    ADD, SUB, MUL, DIV,
     NOT,
     EQ, NEQ,
     LT, GT, LE, GE,
 
-    // vars
     LOAD, STORE,
 
-    // modules
     IMPORT, CALL,
 
-    // output / stack
     PRINT, POP,
 
-    // flow
     JUMP,
     JUMP_IF_FALSE
 }

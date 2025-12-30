@@ -2,12 +2,6 @@
 setlocal EnableExtensions DisableDelayedExpansion
 chcp 65001 >nul
 
-rem =========================
-rem DPL - Build JAR (Windows)
-rem Requires: JDK (javac + jar) + Java 8+
-rem =========================
-
-rem ROOT = parent of /scripts
 for %%I in ("%~dp0..") do set "ROOT=%%~fI"
 
 set "SRC_DIR=%ROOT%\src"
@@ -37,7 +31,6 @@ if errorlevel 1 goto :NO_JAVA
 
 if not exist "%SRC_DIR%\" goto :NO_SRC
 
-rem --- prepare folders ---
 if exist "%OUT_DIR%\" rmdir /s /q "%OUT_DIR%"
 mkdir "%OUT_DIR%" >nul 2>nul
 if not exist "%DIST_DIR%\" mkdir "%DIST_DIR%" >nul 2>nul
@@ -51,7 +44,6 @@ if errorlevel 1 goto :COMPILE_FAIL
 
 if not exist "%OUT_DIR%\%MAIN_CLASS%.class" goto :MAIN_NOT_FOUND
 
-rem --- manifest (no parentheses block) ---
 set "MF=%OUT_DIR%\manifest.mf"
 > "%MF%" echo Manifest-Version: 1.0
 >>"%MF%" echo Main-Class: %MAIN_CLASS%
