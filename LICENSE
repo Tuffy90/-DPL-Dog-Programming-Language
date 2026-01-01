@@ -1,38 +1,36 @@
-MIT License (Modified - Attribution & No Misrepresentation)
+DPL Proprietary License (No Redistribution / No Sale)
 
 Copyright (c) 2025 Tuffy90
+All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+1) Purpose
+This Software and its documentation are provided for learning and personal use.
 
-1) Attribution (Required)
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+2) No Redistribution
+You may not copy, publish, distribute, share, upload, mirror, or otherwise redistribute
+the Software or substantial portions of it in any form (source code, binaries, archives,
+modified versions, or forks) without prior written permission from the copyright holder.
 
-2) No Misrepresentation
-You may not claim that you wrote the original Software. You may not publish,
-distribute, or present the Software (or substantial portions of it) under a
-different author name as if it were your original work.
+3) No Sale / Commercial Distribution
+You may not sell, sublicense, rent, lease, or commercially distribute the Software or
+any copies or derivatives of it without prior written permission from the copyright holder.
 
-3) No Endorsement
+4) No Misrepresentation / Attribution
+You may not claim that you wrote the original Software. When permission is granted to
+share or publish, you must keep this copyright notice and license text intact.
+
+5) Names / No Endorsement
 You may not use the name "Tuffy90", "Tuffy Rej", "DPL", "Dog Programming Language",
-or the names of contributors to endorse or promote products derived from this
-Software without specific prior written permission.
+or the names of contributors to endorse or promote products derived from this Software
+without prior written permission.
 
-4) Contributions / Helping the Developer
-If you want to help the developer or contribute to this project (especially with
-major changes, modules, or features), you must coordinate it with the creator/
-project owner (Tuffy90 / Tuffy Rej) in advance, or follow the contribution rules
-stated in the repository (e.g., CONTRIBUTING.md) if such rules exist.
+6) Contributions
+If you want to contribute (modules, features, major changes), you must coordinate it
+with the project owner in advance or follow the rules stated in CONTRIBUTING.md if present.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+7) Disclaimer
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
